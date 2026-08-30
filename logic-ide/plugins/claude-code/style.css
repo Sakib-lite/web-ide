@@ -1,4 +1,3 @@
-/* Claude Code plugin styles */
 .cc-root { display: flex; flex-direction: column; flex: 1; min-height: 0; font-size: 13px; }
 .cc-toolbar { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-bottom: 1px solid var(--border-soft); flex-wrap: wrap; }
 .cc-toolbar .filter-select { max-width: 120px; }
