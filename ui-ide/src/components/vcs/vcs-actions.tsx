@@ -159,10 +159,10 @@ export async function pushDialog() {
   if (!status.repo) return toast('Not a Git repository', '', 'info');
   const [outgoing, remotes, br] = await Promise.all([api<any[]>('/api/git/outgoing').catch(() => []), api<{ name: string }[]>('/api/git/remotes').catch(() => []), loadBranches(true)]);
   if (!remotes.length) {
-    const url = await promptDialog({ title: 'No remote configured', label: 'Add remote "origin" with URL:', okText: 'Add Remote', validate: (v) => (!v ? 'URL is required' : undefined) });
-    if (!url) return;
-    await post('/api/git/remote', { name: 'origin', url });
-    return pushDialog();
+    const { openPublishDialog } = await import('@/components/github/PublishDialog');
+    const result = await openPublishDialog();
+    if (result === 'remote-added') return pushDialog();
+    return;
   }
   const current = br.local.find((b) => b.current);
   const branch = status.branch || '';

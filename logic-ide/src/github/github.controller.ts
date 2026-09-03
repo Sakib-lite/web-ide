@@ -99,6 +99,28 @@ export class GithubController {
     })());
   }
 
+  @Get('github/repo-available')
+  async repoAvailable(@Query('name') name = '') {
+    if (!/^[A-Za-z0-9_.-]{1,100}$/.test(name)) fail('Use letters, numbers, dashes, underscores or dots');
+    const user = (await this.settings.get()).githubUser || (await this.github.user()).login;
+    return { name, owner: user, available: !(await this.github.repoExists(user, name)) };
+  }
+
+  @Post('github/publish')
+  async publish(@Root() root: string, @Body() body: { name: string; description?: string; private?: boolean }) {
+    const p = this.projects.require(root);
+    const name = String(body.name || '').trim();
+    if (!/^[A-Za-z0-9_.-]{1,100}$/.test(name)) fail('Use letters, numbers, dashes, underscores or dots');
+    if (!(await p.git.isRepo())) await p.git.init();
+    if (await p.git.remoteUrl('origin')) fail('This project already has an "origin" remote');
+    const repo = await this.github.createRepo({ name, description: body.description, isPrivate: body.private !== false });
+    await p.git.addRemote('origin', repo.cloneUrl);
+    const branch = (await p.git.branch()) || 'main';
+    if (branch === 'HEAD') fail('Create a first commit before publishing');
+    const output = await p.git.push({ remote: 'origin', branch });
+    return { ok: true, url: repo.url, fullName: repo.fullName, private: repo.private, output: output.trim() };
+  }
+
   @Get('github/collaborators')
   async collaborators(@Root() root: string) {
     const ref = await this.repo(root);
