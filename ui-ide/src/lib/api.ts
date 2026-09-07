@@ -1,6 +1,6 @@
 import { useStore } from './store';
 
-export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4099').replace(/\/$/, '');
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly code?: string) {
