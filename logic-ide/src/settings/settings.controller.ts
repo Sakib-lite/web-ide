@@ -19,7 +19,7 @@ export class SettingsController {
   @Post()
   async update(@Body() body: { githubToken?: string; clearGithubToken?: boolean }) {
     const patch: Record<string, string> = {};
-    if (typeof body.githubToken === 'string' && !body.githubToken.includes('•')) patch.githubToken = body.githubToken.trim();
+    if (typeof body.githubToken === 'string' && !body.githubToken.includes('*')) patch.githubToken = body.githubToken.trim();
     if (body.clearGithubToken) Object.assign(patch, { githubToken: '', githubUser: '' });
     let s = await this.settings.update(patch);
     if (patch.githubToken) s = await this.verifyToken();

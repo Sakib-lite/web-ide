@@ -21,6 +21,21 @@ export class ProjectsController {
     return browseDirectories(dir);
   }
 
+  @Get('favorites')
+  favorites() {
+    return this.projects.favorites();
+  }
+
+  @Post('favorites')
+  addFavorite(@Body('path') path: string) {
+    return this.projects.addFavorite(path);
+  }
+
+  @Delete('favorites')
+  removeFavorite(@Query('path') path: string) {
+    return this.projects.removeFavorite(path);
+  }
+
   @Post('project/open')
   async open(@Body('path') path: string) {
     return this.projects.info(await this.projects.open(path));

@@ -36,7 +36,7 @@ function SettingsView({ close }: { close: () => void }) {
     setError('');
     try {
       const patch: Record<string, unknown> = { clearGithubToken: clear };
-      if (token && !token.includes('•')) patch.githubToken = token;
+      if (token && !token.includes('*')) patch.githubToken = token;
       await api('/api/settings', { method: 'POST', body: patch });
       if (project && (git.name !== initialGit.name || git.email !== initialGit.email)) await api('/api/git/config', { method: 'POST', body: git });
       updateSettings({ updateRebase: rebase });

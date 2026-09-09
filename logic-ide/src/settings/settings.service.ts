@@ -7,6 +7,7 @@ export interface Settings {
   githubToken?: string;
   githubUser?: string;
   disabledPlugins?: string[];
+  favoriteFolders?: string[];
 }
 
 const FILE = path.join(DATA_DIR, 'settings.json');
@@ -40,7 +41,7 @@ export class SettingsService {
 
   toPublic(s: Settings) {
     return {
-      githubToken: s.githubToken ? `${'•'.repeat(8)}${s.githubToken.slice(-4)}` : '',
+      githubToken: s.githubToken ? '*'.repeat(10) : '',
       hasGithubToken: !!s.githubToken,
       githubUser: s.githubUser || null,
     };

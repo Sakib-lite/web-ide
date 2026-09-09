@@ -231,6 +231,8 @@ class EditorManager {
     tab.gutter.cancel();
     const stillUsed = [...this.tabs.values()].some((t) => t.model === tab.model);
     if (tab.kind === 'diff') {
+      const shown = this.diffEditor.getModel();
+      if (shown && (shown.original === tab.original || shown.modified === tab.model)) this.diffEditor.setModel(null);
       tab.original?.dispose();
       if ((tab.ownsModel || !stillUsed) && !this.tabs.get(tab.path)) tab.model.dispose();
     } else if (!stillUsed) tab.model.dispose();

@@ -74,6 +74,25 @@ export class ProjectsService {
     return this.writeRecent((await this.recent()).filter((p) => p.path !== root));
   }
 
+  async favorites(): Promise<string[]> {
+    return (await this.settings.get()).favoriteFolders || [];
+  }
+
+  async addFavorite(root: string): Promise<string[]> {
+    root = path.resolve(root);
+    const list = (await this.favorites()).filter((p) => p !== root);
+    list.unshift(root);
+    await this.settings.update({ favoriteFolders: list });
+    return list;
+  }
+
+  async removeFavorite(root: string): Promise<string[]> {
+    root = path.resolve(root);
+    const list = (await this.favorites()).filter((p) => p !== root);
+    await this.settings.update({ favoriteFolders: list });
+    return list;
+  }
+
   private async writeRecent(list: { path: string; name: string; openedAt: number }[]) {
     await fs.mkdir(DATA_DIR, { recursive: true });
     await fs.writeFile(RECENT_FILE, JSON.stringify(list, null, 2));
