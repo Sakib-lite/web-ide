@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { reportError } from '@/lib/error-log';
 
 export type ToastType = 'info' | 'success' | 'error';
 
@@ -35,6 +36,7 @@ export const useToasts = create<ToastState>((set, get) => ({
 
 export function toast(title: string, body = '', type: ToastType = 'info', timeout = 4500) {
   useToasts.getState().push(title, body, type, timeout);
+  if (type === 'error') reportError([title, body].filter(Boolean).join(': '));
 }
 
 export function ToastHost() {

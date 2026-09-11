@@ -6,11 +6,12 @@ import { basename, dirname } from '@/lib/utils';
 import { Icon } from '@/components/ui/Icon';
 import { FileIcon } from '@/components/ui/FileIcon';
 import { MenuItem, showContextMenu } from '@/components/ui/ContextMenu';
+import { toast } from '@/components/ui/Toasts';
 import { editorManager } from '@/editor/editor-manager';
 import { ChangeGroup, groups, lists, listOf, targetPaths, useCommitStore } from './commit-store';
 import { addToVcs, createPatch, deleteChangelist, deleteFiles, editChangelist, ignoreFiles, moveTo, newChangelist, openChange, rollback, setActiveChangelist, shelve } from './commit-actions';
 import { refreshGitStatus } from './git-status';
-import { api } from '@/lib/api';
+import { api, gitApi } from '@/lib/api';
 import { emit } from '@/lib/bus';
 
 const LETTER: Record<string, string> = { modified: 'M', added: 'A', deleted: 'D', untracked: 'U', renamed: 'R', conflict: '!' };
@@ -98,6 +99,16 @@ function ChangeRow({ path, group, order }: { path: string; group: ChangeGroup; o
   if (!info) return null;
   const isDir = path.endsWith('/');
   const name = basename(isDir ? path.slice(0, -1) : path);
+  const toggleStage = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      if (group.unversioned || !info.staged) await addToVcs([path]);
+      else await gitApi.unstage([path]);
+      refreshGitStatus();
+    } catch (err: any) {
+      toast(group.unversioned || !info.staged ? 'Stage failed' : 'Unstage failed', err.message, 'error');
+    }
+  };
   return (
     <div
       className={`change-row${selected ? ' selected' : ''}${info.staged && !group.unversioned ? ' staged' : ''}`}
@@ -111,6 +122,9 @@ function ChangeRow({ path, group, order }: { path: string; group: ChangeGroup; o
       <FileIcon name={name} dir={isDir} />
       <span className={`change-name git-${info.status}`}>{name}</span>
       <span className="change-dir">{dirname(path)}</span>
+      <button className="change-stage" title={group.unversioned || !info.staged ? 'Stage' : 'Unstage'} onClick={toggleStage}>
+        <Icon name={group.unversioned || !info.staged ? 'plus' : 'minus'} />
+      </button>
       <span className="change-status" title={info.status}>{LETTER[info.status] || '?'}</span>
     </div>
   );

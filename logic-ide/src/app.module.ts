@@ -12,9 +12,10 @@ import { CloneService } from './github/clone.service';
 import { AiController } from './ai/ai.controller';
 import { PluginHost } from './plugins/plugin-host';
 import { PluginsController } from './plugins/plugins.controller';
+import { LogsController } from './logs/logs.controller';
 
 @Module({
-  controllers: [SettingsController, ProjectsController, FsController, GitController, ChangelistsController, SymbolsController, GithubController, AiController, PluginsController],
+  controllers: [SettingsController, ProjectsController, FsController, GitController, ChangelistsController, SymbolsController, GithubController, AiController, PluginsController, LogsController],
   providers: [SettingsService, ProjectsService, CloneService, PluginHost],
 })
 export class AppModule {}

@@ -8,6 +8,10 @@ import { installWebSockets } from './ws/upgrade';
 import { ProjectsService } from './projects/projects.service';
 import { PluginHost } from './plugins/plugin-host';
 import { PORT, UI_ORIGINS } from './config/paths';
+import { logError } from './common/error-log';
+
+process.on('uncaughtException', (err) => logError('backend', { message: err.message, context: 'uncaughtException', stack: err.stack }));
+process.on('unhandledRejection', (err: any) => logError('backend', { message: err?.message || String(err), context: 'unhandledRejection', stack: err?.stack }));
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: ['error', 'warn'] });

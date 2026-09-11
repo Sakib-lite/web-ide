@@ -31,11 +31,12 @@ async function search(scope: Scope, q: string): Promise<Result[]> {
   if (!q) return [];
   const wantFiles = scope === 'all' || scope === 'files';
   const wantSymbols = scope === 'all' || scope === 'symbols';
+  const wantText = (scope === 'all' || scope === 'text') && q.length >= 2;
   const wantActions = scope === 'all' || scope === 'actions';
   const [files, symbols, text] = await Promise.all([
     wantFiles ? fsApi.files().catch(() => [] as string[]) : [],
     wantSymbols ? symApi.search(q).catch(() => []) : [],
-    scope === 'text' && q.length >= 2 ? fsApi.search(q).catch(() => []) : [],
+    wantText ? fsApi.search(q).catch(() => []) : [],
   ]);
   const groups: [string, Result[]][] = [];
   if (wantFiles) {
@@ -46,7 +47,7 @@ async function search(scope: Scope, q: string): Promise<Result[]> {
     const sorted = symbols.map((s: any) => ({ ...s, score: fuzzyScore(s.name, q) })).sort((a: any, b: any) => b.score - a.score);
     groups.push(['Symbols', sorted.slice(0, scope === 'symbols' ? 60 : 12).map((s: any) => ({ type: 'symbol', path: s.file, line: s.line, col: s.col, label: s.name, kind: s.kind, container: s.container, sub: s.file }))]);
   }
-  if (scope === 'text') groups.push(['Text', text.map((r: any) => ({ type: 'text', path: r.file, line: r.line, col: r.col, label: r.text, sub: `${r.file}:${r.line}` }))]);
+  if (wantText) groups.push(['Text', text.slice(0, scope === 'text' ? 100 : 12).map((r: any) => ({ type: 'text', path: r.file, line: r.line, col: r.col, label: r.text, sub: `${r.file}:${r.line}` }))]);
   if (wantActions) {
     const acts = ideActions().map((a) => ({ ...a, score: fuzzyScore(a.label, q) })).filter((a) => a.score >= 0).sort((a, b) => b.score - a.score);
     groups.push(['Actions', acts.slice(0, scope === 'actions' ? 60 : 6).map((a) => ({ type: 'action', label: a.label, sub: a.key || '', run: a.run }))]);
