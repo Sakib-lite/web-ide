@@ -433,6 +433,15 @@ kbd {
 .favorite-toggle:hover { background: var(--bg-hover); }
 .browse-item .tag ~ .favorite-toggle { margin-left: 6px; }
 .tb-icon.active { color: var(--warning); }
+.settings-layout { display: flex; gap: 16px; min-height: 340px; }
+.settings-nav { display: flex; flex-direction: column; gap: 2px; width: 140px; flex-shrink: 0; border-right: 1px solid var(--border); padding-right: 10px; }
+.settings-nav button { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; color: var(--text-secondary); text-align: left; transition: background var(--t-fast), color var(--t-fast); }
+.settings-nav button:hover { background: var(--bg-hover); }
+.settings-nav button.active { background: var(--bg-selected); color: var(--text); }
+.settings-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.settings-num { display: flex; align-items: center; gap: 6px; }
+.settings-num input { width: 90px; }
+.settings-suffix { color: var(--text-muted); font-size: 12px; }
 .favorites-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .favorite-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border-radius: 12px; background: var(--bg-hover); color: var(--text-secondary); font-size: 12px; max-width: 160px; }
 .favorite-chip:hover { background: var(--bg-selected); color: var(--text); }

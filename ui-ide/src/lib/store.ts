@@ -31,6 +31,11 @@ export interface EditorSettings {
   diffSideBySide: boolean;
   diffIgnoreWs: boolean;
   updateRebase: boolean;
+  tabSize: number;
+  fontLigatures: boolean;
+  stickyScroll: boolean;
+  autoSaveDelay: number;
+  terminalFontSize: number;
 }
 
 export interface TabInfo {
@@ -60,7 +65,7 @@ interface ToolLayout {
   saved: Record<Side, boolean> | null;
 }
 
-const DEFAULT_SETTINGS: EditorSettings = { fontSize: 13, wordWrap: 'off', minimap: true, diffSideBySide: true, diffIgnoreWs: false, updateRebase: false };
+const DEFAULT_SETTINGS: EditorSettings = { fontSize: 13, wordWrap: 'off', minimap: true, diffSideBySide: true, diffIgnoreWs: false, updateRebase: false, tabSize: 4, fontLigatures: true, stickyScroll: true, autoSaveDelay: 900, terminalFontSize: 12.5 };
 
 interface State {
   project: ProjectInfo | null;
