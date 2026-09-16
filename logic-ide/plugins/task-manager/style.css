@@ -1,0 +1,17 @@
+.tm-host { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.tm-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.tm-title { font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); }
+.tm-add { font-size: 12px; }
+.tm-list { flex: 1; overflow: auto; padding: 4px 0; }
+.tm-empty { padding: 20px 14px; color: var(--text-secondary); font-size: 12.5px; line-height: 1.5; }
+.tm-row { display: flex; align-items: center; gap: 8px; padding: 5px 10px; cursor: default; transition: background var(--t-fast); }
+.tm-row:hover { background: var(--bg-hover); }
+.tm-info { flex: 1; min-width: 0; }
+.tm-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-cmd { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--t-fast); flex-shrink: 0; }
+.tm-row:hover .tm-actions { opacity: 1; }
+.tm-btn { width: 22px; height: 22px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 11px; transition: background var(--t-fast), color var(--t-fast); }
+.tm-btn:hover { background: var(--bg-selected); color: var(--text); }
+.tm-btn.tm-run { color: var(--success); }
+.tm-btn.tm-del:hover { color: var(--git-untracked); }
