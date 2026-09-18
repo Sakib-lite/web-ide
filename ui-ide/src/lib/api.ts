@@ -20,14 +20,25 @@ export async function api<T = any>(path: string, { method = 'GET', body, query, 
   const root = useStore.getState().project?.root;
   if (root && !url.searchParams.has('root')) url.searchParams.set('root', root);
   if (query) for (const [k, v] of Object.entries(query)) if (v != null && v !== '') url.searchParams.set(k, String(v));
-  const res = await fetch(url, {
+  const init: RequestInit = {
     method,
     credentials: 'include',
     headers: body ? { 'content-type': 'application/json' } : undefined,
     body: body ? JSON.stringify({ root, ...body }) : undefined,
-  });
+  };
+  let res = await fetch(url, init);
   if (raw) return (await res.text()) as T;
-  const data = await res.json().catch(() => ({}));
+  let data = await res.json().catch(() => ({}));
+  // The backend keeps open projects in memory; after it restarts (e.g. dev watch),
+  // every request 409s with NO_PROJECT until the project is reopened. Recover by
+  // silently reopening the current project and retrying the request once.
+  if (!res.ok && data.code === 'NO_PROJECT' && root && path !== '/api/project/open') {
+    const reopened = await fetch(API_BASE + '/api/project/open', { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: root }) }).then((r) => r.ok).catch(() => false);
+    if (reopened) {
+      res = await fetch(url, init);
+      data = await res.json().catch(() => ({}));
+    }
+  }
   if (!res.ok) throw new ApiError(data.error || res.statusText, res.status, data.code);
   return data as T;
 }

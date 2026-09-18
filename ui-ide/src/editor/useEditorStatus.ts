@@ -20,9 +20,13 @@ export function useEditorStatus() {
     };
     const offReady = editorManager.onChange(attach);
     const offTab = on<any>('active-tab', (tab) => {
-      if (!tab || tab.kind !== 'file') return;
+      if (!tab || tab.kind !== 'file' || tab.model.isDisposed()) return;
+      // Read the model eagerly: inside the setStatus updater it would run later,
+      // during render, when the tab may already be closed and its model disposed.
       const opts = tab.model.getOptions();
-      setStatus((s) => ({ ...s, eol: tab.model.getEOL() === '\n' ? 'LF' : 'CRLF', indent: opts.insertSpaces ? `${opts.tabSize} spaces` : 'Tab' }));
+      const eol = tab.model.getEOL() === '\n' ? 'LF' : 'CRLF';
+      const indent = opts.insertSpaces ? `${opts.tabSize} spaces` : 'Tab';
+      setStatus((s) => ({ ...s, eol, indent }));
     });
     attach();
     return () => {
