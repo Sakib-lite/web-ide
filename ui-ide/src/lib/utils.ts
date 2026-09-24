@@ -85,6 +85,29 @@ export function writeLocal(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+export async function copyText(text: string): Promise<boolean> {
+  // navigator.clipboard is undefined on insecure origins (the IDE runs on plain
+  // http://web-ide.com), so fall back to the legacy execCommand path there.
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {}
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+  document.body.append(ta);
+  ta.focus();
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch {}
+  ta.remove();
+  return ok;
+}
+
 export function downloadText(name: string, text: string, type = 'text/plain') {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([text], { type }));

@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { api } from '@/lib/api';
 import { useStore } from '@/lib/store';
-import { fmtDate } from '@/lib/utils';
+import { copyText, fmtDate } from '@/lib/utils';
 import { MenuItem, showContextMenu } from '@/components/ui/ContextMenu';
 import { confirmDialog, promptDialog } from '@/components/ui/dialogs';
 import { toast } from '@/components/ui/Toasts';
@@ -18,8 +18,8 @@ function commitMenu(c: LogCommit): MenuItem[] {
   const branch = useStore.getState().gitStatus.branch;
   const { filters, setFilter } = useLogStore.getState();
   return [
-    { label: 'Copy Revision Number', action: () => navigator.clipboard?.writeText(c.hash).then(() => toast('Copied', c.hash, 'info', 1500)) },
-    { label: 'Copy Commit Message', action: () => navigator.clipboard?.writeText(c.subject) },
+    { label: 'Copy Revision Number', action: async () => (await copyText(c.hash)) && toast('Copied', c.hash, 'info', 1500) },
+    { label: 'Copy Commit Message', action: () => copyText(c.subject) },
     'sep',
     { label: 'Checkout Revision', action: () => checkout(c.hash).catch(() => undefined) },
     { label: 'New Branch…', action: () => newBranchDialog(c.short) },

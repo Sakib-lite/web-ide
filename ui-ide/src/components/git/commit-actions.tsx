@@ -1,7 +1,7 @@
 import { api, API_BASE, gitApi } from '@/lib/api';
 import { useStore } from '@/lib/store';
 import { emit } from '@/lib/bus';
-import { downloadText, readLocal, writeLocal } from '@/lib/utils';
+import { copyText, downloadText, readLocal, writeLocal } from '@/lib/utils';
 import { confirmDialog, formDialog, promptDialog } from '@/components/ui/dialogs';
 import { toast } from '@/components/ui/Toasts';
 import { editorManager } from '@/editor/editor-manager';
@@ -130,7 +130,7 @@ export async function createPatch(paths: string[], download: boolean) {
   const text = await fetch(`${API_BASE}/api/git/patch?root=${encodeURIComponent(root.root)}&paths=${encodeURIComponent(paths.join('\n'))}`, { credentials: 'include' }).then((r) => r.text());
   if (!text.trim()) return toast('Nothing to patch', 'Selected files have no diff against HEAD.', 'info');
   if (download) return downloadText(`${root.name}-changes.patch`, text);
-  await navigator.clipboard?.writeText(text);
+  if (!(await copyText(text))) return toast('Copy failed', 'Clipboard is not available.', 'error');
   toast('Patch copied', `${paths.length} file${paths.length === 1 ? '' : 's'}`, 'success', 2000);
 }
 
