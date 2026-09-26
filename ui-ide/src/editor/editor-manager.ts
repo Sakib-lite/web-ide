@@ -3,7 +3,7 @@ import { loader } from '@monaco-editor/react';
 import { fsApi, gitApi } from '@/lib/api';
 import { useStore, TabInfo } from '@/lib/store';
 import { emit, on } from '@/lib/bus';
-import { basename, debounce, Debounced, extname, shortAgo } from '@/lib/utils';
+import { basename, debounce, Debounced, extname, readLocal, shortAgo, writeLocal } from '@/lib/utils';
 import { toast } from '@/components/ui/Toasts';
 import { THEME_NAME, configureTypescript, defineTheme, languageFor } from './theme';
 import { registerDefinitionProvider } from './definitions';
@@ -22,6 +22,7 @@ interface OpenOptions {
   col?: number;
   preview?: boolean;
   activate?: boolean;
+  silent?: boolean;
 }
 
 export interface Tab {
@@ -62,6 +63,8 @@ class EditorManager {
   private navigating = false;
   private readonly listeners = new Set<Listener>();
   private initPromise: Promise<void> | null = null;
+  private restorePromise: Promise<void> | null = null;
+  private tabsRestored = false;
 
   onChange(listener: Listener) {
     this.listeners.add(listener);
@@ -83,6 +86,12 @@ class EditorManager {
     loader.config({ paths: { vs: '/monaco/vs' } });
     this.monaco = (await loader.init()) as typeof Monaco;
     const monaco = this.monaco;
+    // A stale editor can survive in the host (e.g. hot module replacement re-created
+    // this singleton); Monaco then warns "Element already has context attribute".
+    for (const host of [editorHost, diffHost]) {
+      host.replaceChildren();
+      host.removeAttribute('data-keybinding-context');
+    }
     defineTheme(monaco);
     configureTypescript(monaco);
     const settings = useStore.getState().settings;
@@ -116,6 +125,32 @@ class EditorManager {
   private publishTabs() {
     const tabs: TabInfo[] = [...this.tabs.values()].map((t) => ({ key: t.key, path: t.path, kind: t.kind, title: t.title || (t.kind === 'diff' ? `${basename(t.path)} (Diff)` : basename(t.path)), dirty: t.dirty, preview: t.preview, blame: !!t.blame }));
     useStore.getState().setTabs(tabs, this.active?.key || null);
+    this.persistTabs();
+  }
+
+  private persistTabs() {
+    // Wait for restore so an early empty publish does not wipe the saved session.
+    if (!this.tabsRestored) return;
+    const root = useStore.getState().project?.root;
+    if (!root) return;
+    const files = [...this.tabs.values()].filter((t) => t.kind === 'file').map((t) => t.path);
+    writeLocal('ide.openTabs.' + root, { files, active: this.active?.kind === 'file' ? this.active.path : null });
+  }
+
+  restoreTabs(): Promise<void> {
+    return (this.restorePromise ||= this.doRestoreTabs());
+  }
+
+  private async doRestoreTabs() {
+    const root = useStore.getState().project?.root;
+    const saved = root ? readLocal<{ files: string[]; active: string | null }>('ide.openTabs.' + root, { files: [], active: null }) : { files: [], active: null };
+    // silent: files deleted on disk since the last session are skipped without
+    // toasts or crashes; the saved list is rewritten without them below.
+    for (const path of saved.files) await this.openFile(path, { preview: false, activate: false, silent: true });
+    this.tabsRestored = true;
+    if (saved.active && this.tabs.has(saved.active)) this.activate(saved.active);
+    else if (!this.active && this.tabs.size) this.activate([...this.tabs.keys()][0]);
+    this.notify();
   }
 
   applySettings() {
@@ -145,7 +180,7 @@ class EditorManager {
     }
   }
 
-  private async doOpen(path: string, { line, col, preview = false, activate = true }: OpenOptions): Promise<Tab | null> {
+  private async doOpen(path: string, { line, col, preview = false, activate = true, silent = false }: OpenOptions): Promise<Tab | null> {
     const existing = this.tabs.get(path);
     if (existing) {
       if (!preview) existing.preview = false;
@@ -158,7 +193,7 @@ class EditorManager {
       const data = await fsApi.read(path);
       return this.openWithContent(path, data.content, { line, col, preview, activate });
     } catch (err: any) {
-      toast(basename(path), err.message, 'error');
+      if (!silent) toast(basename(path), err.message, 'error');
       return null;
     }
   }
