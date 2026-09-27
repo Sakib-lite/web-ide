@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.next/
+out/
+data/
+.idea/
+.DS_Store
+ui-ide/public/monaco/
+*.log

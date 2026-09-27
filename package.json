@@ -1,0 +1,11 @@
+{
+  "name": "web-ide",
+  "private": true,
+  "workspaces": ["logic-ide", "ui-ide"],
+  "scripts": {
+    "dev": "npm run dev --workspace logic-ide & npm run dev --workspace ui-ide & wait",
+    "build": "npm run build --workspaces",
+    "start": "npm run start --workspace logic-ide & npm run start --workspace ui-ide & wait",
+    "test": "npm run test --workspace ui-ide"
+  }
+}
