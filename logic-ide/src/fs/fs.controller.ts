@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { ProjectsService } from '../projects/projects.service';
+import { HistoryService } from '../history/history.service';
 import { Root } from '../common/project-root';
 import { ok } from '../common/ok';
 import { INDEXED_EXTS, JS_EXTS, PHP_EXTS, PY_EXTS, langOf } from '../symbols/types';
@@ -9,7 +10,7 @@ import { Project } from '../projects/project';
 
 @Controller('api')
 export class FsController {
-  constructor(private readonly projects: ProjectsService) {}
+  constructor(private readonly projects: ProjectsService, private readonly history: HistoryService) {}
 
   @Get('files')
   async files(@Root() root: string) {
@@ -35,6 +36,7 @@ export class FsController {
   @Post('fs/write')
   async write(@Root() root: string, @Body() body: { path: string; content: string }) {
     const p = this.projects.require(root);
+    await this.history.snapshot(p.root, body.path, p.fs.resolve(body.path), 'save');
     const out = await p.fs.write(body.path, body.content);
     if (INDEXED_EXTS.has(path.extname(body.path).toLowerCase())) await p.symbols.indexFile(body.path, body.content);
     return out;
@@ -51,8 +53,10 @@ export class FsController {
   }
 
   @Post('fs/delete')
-  remove(@Root() root: string, @Body('path') rel: string) {
-    return ok(this.projects.require(root).fs.remove(rel));
+  async remove(@Root() root: string, @Body('path') rel: string) {
+    const p = this.projects.require(root);
+    await this.history.snapshot(p.root, rel, p.fs.resolve(rel), 'delete');
+    return ok(p.fs.remove(rel));
   }
 
   @Get('fs/resolve')

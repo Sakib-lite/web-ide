@@ -7,6 +7,7 @@ import { toast } from '@/components/ui/Toasts';
 import { MenuItem } from '@/components/ui/ContextMenu';
 import { editorManager } from '@/editor/editor-manager';
 import { openTerminalAt } from '@/components/terminal/terminal-store';
+import { openLocalHistory } from '@/components/editor/LocalHistoryDialog';
 import { getTreeApi, TreeNode } from './useTree';
 
 export async function locateInTree(path: string) {
@@ -80,6 +81,7 @@ export function nodeMenu(node: TreeNode): MenuItem[] {
     { label: 'New Directory…', action: () => createNode(dir, 'dir') },
     'sep',
     { label: 'Open', hidden: node.type !== 'file', action: () => editorManager.openFile(node.path, { preview: false }) },
+    { label: 'Local History', hidden: node.type !== 'file', action: () => openLocalHistory(node.path) },
     { label: 'Rename…', key: 'F2', hidden: isRoot, action: () => renameNode(node) },
     { label: 'Copy Path', action: () => copy(`${root}/${node.path}`) },
     { label: 'Copy Relative Path', action: () => copy(node.path) },
