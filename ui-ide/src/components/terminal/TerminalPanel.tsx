@@ -6,7 +6,7 @@ import { useStore, isToolVisible } from '@/lib/store';
 import { on } from '@/lib/bus';
 import { Icon } from '@/components/ui/Icon';
 import { ToolHeader } from '@/components/layout/ToolPanel';
-import { useTerminals, TerminalSession } from './terminal-store';
+import { restoreTerminals, useTerminals, type TerminalSession } from './terminal-store';
 
 function SessionView({ session, active }: { session: TerminalSession; active: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -39,11 +39,12 @@ function SessionView({ session, active }: { session: TerminalSession; active: bo
 }
 
 export function TerminalPanel() {
-  const { sessions, activeId, create, activate, close } = useTerminals();
+  const { sessions, activeId, activate, close, rerun } = useTerminals();
   const visible = useStore((s) => isToolVisible(s, 'terminal'));
   useEffect(() => {
-    if (visible && !sessions.length) create();
-  }, [visible, sessions.length, create]);
+    if (visible && !sessions.length) restoreTerminals();
+  }, [visible, sessions.length]);
+  const active = sessions.find((s) => s.id === activeId);
   return (
     <>
       <ToolHeader
@@ -62,7 +63,8 @@ export function TerminalPanel() {
           </>
         }
       >
-        <button className="tb-icon sm" title="New session" onClick={() => create()}><Icon name="plus" /></button>
+        {active?.lastCommand && <button className="tb-icon sm" title={`Rerun: ${active.lastCommand}`} onClick={() => rerun()}><Icon name="refresh" /></button>}
+        <button className="tb-icon sm" title="New session" onClick={() => useTerminals.getState().create()}><Icon name="plus" /></button>
       </ToolHeader>
       <div className="term-host">
         {sessions.map((s) => <SessionView key={s.id} session={s} active={s.id === activeId} />)}
