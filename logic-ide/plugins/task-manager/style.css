@@ -8,6 +8,7 @@
 .tm-row:hover { background: var(--bg-hover); }
 .tm-info { flex: 1; min-width: 0; }
 .tm-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-badge { display: inline-block; margin-left: 6px; padding: 0 5px; border-radius: 3px; font-size: 10px; line-height: 16px; vertical-align: 1px; color: var(--accent, #548af7); background: color-mix(in srgb, var(--accent, #548af7) 15%, transparent); }
 .tm-cmd { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-actions { display: flex; gap: 2px; opacity: 0; transition: opacity var(--t-fast); flex-shrink: 0; }
 .tm-row:hover .tm-actions { opacity: 1; }
