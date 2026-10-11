@@ -713,6 +713,10 @@ kbd {
 .prd-comment .who { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 11.5px; margin-bottom: 3px; }
 .prd-comment .body { white-space: pre-wrap; word-break: break-word; }
 .label-chip { font-size: 10.5px; padding: 1px 6px; border-radius: 10px; border: 1px solid; }
+.prd-reviewers { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.reviewer-chip { display: inline-flex; align-items: center; gap: 4px; border-color: var(--border); color: var(--text-secondary); }
+.chip-x { cursor: pointer; opacity: .6; }
+.chip-x:hover { opacity: 1; color: var(--git-untracked); }
 .pr-login { padding: 24px 16px; text-align: center; color: var(--text-secondary); display: flex; flex-direction: column; gap: 10px; align-items: center; }
 
 .form-field { display: flex; flex-direction: column; gap: 4px; }

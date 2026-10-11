@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ProjectsService } from '../projects/projects.service';
 import { SettingsService } from '../settings/settings.service';
 import { GitHubClient, RepoRef } from './github-client';
@@ -76,6 +76,23 @@ export class GithubController {
   @Post('github/pulls/:n/close')
   async closePull(@Root() root: string, @Param('n') n: string) {
     return this.github.closePull(await this.repo(root), Number(n));
+  }
+
+  @Patch('github/pulls/:n')
+  async editPull(@Root() root: string, @Param('n') n: string, @Body() body: { title?: string; body?: string }) {
+    return this.github.editPull(await this.repo(root), Number(n), body);
+  }
+
+  @Post('github/pulls/:n/reviewers')
+  async addReviewers(@Root() root: string, @Param('n') n: string, @Body('reviewers') reviewers: string[]) {
+    if (!Array.isArray(reviewers) || !reviewers.every((r) => typeof r === 'string' && r.trim())) fail('Provide reviewers as a list of usernames');
+    return this.github.requestReviewers(await this.repo(root), Number(n), reviewers.map((r) => r.trim()));
+  }
+
+  @Delete('github/pulls/:n/reviewers')
+  async removeReviewer(@Root() root: string, @Param('n') n: string, @Query('login') login: string) {
+    if (!login) fail('Reviewer login is required');
+    return this.github.removeReviewer(await this.repo(root), Number(n), login);
   }
 
   @Post('github/pulls/:n/fetch')
