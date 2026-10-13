@@ -7,15 +7,17 @@ import { emit } from '@/lib/bus';
 import { DialogFrame, openDialog } from '@/components/ui/dialogs';
 import { Icon } from '@/components/ui/Icon';
 import { toast } from '@/components/ui/Toasts';
+import { KEYMAP_GROUPS } from '@/editor/keymap-reference';
 import { loadGithubUser } from './github-actions';
 import { usePullsStore } from './pulls-store';
 
-type Section = 'git' | 'editor' | 'diff' | 'terminal';
+type Section = 'git' | 'editor' | 'diff' | 'terminal' | 'keymap';
 const SECTIONS: { id: Section; label: string; icon: string }[] = [
   { id: 'git', label: 'Git', icon: 'branch' },
   { id: 'editor', label: 'Editor', icon: 'file' },
   { id: 'diff', label: 'Diff', icon: 'diff' },
   { id: 'terminal', label: 'Terminal', icon: 'terminal' },
+  { id: 'keymap', label: 'Keymap', icon: 'customize' },
 ];
 
 function Num({ label, value, min, max, step = 1, suffix, onChange }: { label: string; value: number; min: number; max: number; step?: number; suffix?: string; onChange: (v: number) => void }) {
@@ -48,6 +50,7 @@ function SettingsView({ close, initial }: { close: () => void; initial: Section 
   const [local, setLocal] = useState<EditorSettings>({ ...settings });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [kmq, setKmq] = useState('');
   const patchLocal = (p: Partial<EditorSettings>) => setLocal((s) => ({ ...s, ...p }));
   useEffect(() => {
     loadGithubUser().then((s) => {
@@ -132,6 +135,30 @@ function SettingsView({ close, initial }: { close: () => void; initial: Section 
             <>
               <div className="form-static"><b>Terminal</b></div>
               <Num label="Font size:" value={local.terminalFontSize} min={9} max={24} step={0.5} onChange={(v) => patchLocal({ terminalFontSize: v })} />
+            </>
+          )}
+          {section === 'keymap' && (
+            <>
+              <div className="se-input km-search"><Icon name="search" /><input value={kmq} placeholder="Filter shortcuts…" autoComplete="off" onChange={(e) => setKmq(e.target.value)} /></div>
+              <div className="km-list">
+                {KEYMAP_GROUPS.map((g) => {
+                  const q = kmq.trim().toLowerCase();
+                  const rows = q ? g.items.filter((it) => it.label.toLowerCase().includes(q) || it.keys.some((k) => k.toLowerCase().includes(q))) : g.items;
+                  if (!rows.length) return null;
+                  return (
+                    <div key={g.title}>
+                      <div className="km-group">{g.title}</div>
+                      {rows.map((it) => (
+                        <div key={it.label} className="km-row">
+                          <span>{it.label}</span>
+                          <span className="km-keys">{it.keys.map((k) => <kbd key={k}>{k}</kbd>)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="form-static">JetBrains-style keymap · ⌘ Command · ⌥ Option · ⇧ Shift · ⌃ Control. On Windows/Linux ⌘ is Ctrl and ⌥ is Alt.</div>
             </>
           )}
           <div className="form-error">{error}</div>

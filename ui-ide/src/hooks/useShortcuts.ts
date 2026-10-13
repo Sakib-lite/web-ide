@@ -9,6 +9,7 @@ import { newBranchDialog, pushDialog, updateProject } from '@/components/vcs/vcs
 import { openSettingsDialog } from '@/components/github/SettingsDialog';
 import { createNode } from '@/components/project/tree-actions';
 import { openRecentFiles } from '@/lib/actions';
+import { cycleMdMode } from '@/components/markdown/MarkdownPreview';
 import { isDialogOpen } from '@/components/ui/dialogs';
 
 const TOOL_KEYS: Record<string, string> = { Digit1: 'project', Digit0: 'commit', Digit7: 'structure', Digit9: 'git', Digit3: 'find' };
@@ -19,7 +20,7 @@ export function useShortcuts() {
     const onKeyDown = (e: KeyboardEvent) => {
       const cmd = isMac ? e.metaKey : e.ctrlKey;
       const { toggleTool, showTool, hideAllTools, hideTool, tools, toolDefs } = useStore.getState();
-      const target = e.target as HTMLElement;
+      const target = e.target instanceof Element ? e.target : document.body;
       const inEditor = !!target.closest('.monaco-editor');
       const inField = !!target.closest('input, textarea');
       if (e.key !== 'Shift') shiftOnly = false;
@@ -40,12 +41,14 @@ export function useShortcuts() {
         if (e.code === 'Minus') return handle(() => editorManager.changeFontSize(-1));
         if (e.code === 'KeyE') return handle(openRecentFiles);
         if (e.code === 'F12') return handle(() => showTool('structure'));
+        if (e.code === 'F4') return handle(() => { const a = editorManager.active; if (a) editorManager.closeTab(a.key); });
         if (e.code === 'KeyL' && !inEditor) return handle(() => { editorManager.editor?.focus(); editorManager.trigger('editor.action.gotoLine'); });
         if (e.code === 'BracketLeft' && !inEditor) return handle(() => editorManager.navigate(-1));
         if (e.code === 'BracketRight' && !inEditor) return handle(() => editorManager.navigate(1));
       }
       if (cmd && e.shiftKey && !e.altKey) {
         if (e.code === 'KeyF') return handle(() => openFindInFiles(editorManager.selectedText()));
+        if (e.code === 'KeyV') return handle(() => cycleMdMode());
         if (e.code === 'KeyO' || e.code === 'KeyN') return handle(() => openSearchEverywhere('files'));
         if (e.code === 'KeyA') return handle(() => openSearchEverywhere('actions'));
         if (e.code === 'KeyK') return handle(() => pushDialog());
@@ -73,7 +76,8 @@ export function useShortcuts() {
       if (e.key !== 'Shift') return;
       const now = Date.now();
       if (shiftOnly && now - lastShift < 350 && !isDialogOpen()) {
-        openSearchEverywhere('all');
+        const sel = editorManager.selectedText().split('\n')[0].trim().slice(0, 80);
+        openSearchEverywhere('all', sel);
         lastShift = 0;
         return;
       }
