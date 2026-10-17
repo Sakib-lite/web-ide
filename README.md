@@ -1,42 +1,19 @@
-# Web IDE
+# Web-IDE
 
-A JetBrains-style IDE for the browser, split into two apps:
+A JetBrains-style IDE that runs entirely in the browser, built as a monorepo with a NestJS API (`logic-ide`) and a Next.js UI (`ui-ide`). It gives you a Monaco editor with tabs and diff view, full git integration with a commit window and log graph, a built-in terminal, project-wide search, and a plugin system — all working directly on real projects on your machine.
 
-- `logic-ide` — NestJS API on port 4000: project filesystem, git, symbol index (JS, PHP, Python), GitHub, terminal and plugin host.
-- `ui-ide` — Next.js UI on port 3000: React tool windows around a Monaco editor manager.
+**Languages supported:** JavaScript, PHP, Python — with symbol indexing, autocompletion, go-to-definition, find-usages and a structure view.
+
+<img width="3013" height="1527" alt="image" src="https://github.com/user-attachments/assets/d5a0e4e7-9368-47fd-a748-1af53ae69407" />
+<img width="3021" height="1533" alt="image" src="https://github.com/user-attachments/assets/abb4e285-5af2-4220-955f-f454a809a571" />
+<img width="3014" height="1519" alt="image" src="https://github.com/user-attachments/assets/1bd0a265-fb23-49ba-990f-c6b5f8098236" />
+<img width="3019" height="1538" alt="image" src="https://github.com/user-attachments/assets/4914bd3b-97d7-4d72-af33-c0a31f41799c" />
+<img width="3016" height="1533" alt="image" src="https://github.com/user-attachments/assets/3bfbec58-da8a-4f1b-a3ed-1626c6b49420" />
 
 ## Run
 
 ```bash
-npm install
-npm run dev          # starts both apps
+npm install && npm run dev
 ```
 
-Open http://localhost:3000. The UI talks to `NEXT_PUBLIC_API_URL` (default `http://localhost:4000`); the API allows the
-origins in `UI_ORIGIN` (default `http://localhost:3000,http://127.0.0.1:3000`) with credentials, so no CORS setup is needed.
-Set `IDE_TOKEN=secret` on the API to require a token; open `http://localhost:4000/?token=secret` once to set the cookie.
-
-## Layout
-
-```
-logic-ide/src
-  projects/   project registry, sandboxed filesystem, watcher
-  git/        git runner, status, branches, log, stash, changelists, controllers
-  symbols/    JS/PHP/Python parsers and the index behind completion and navigation
-  github/     GitHub client, pull requests, clone jobs
-  plugins/    plugin host (folders with plugin.json, client.js, server.mjs)
-  ws/         websocket upgrade for terminal, project events and plugins
-ui-ide/src
-  lib/        api client, zustand store, event bus, actions registry
-  editor/     Monaco manager, theme, definitions, intellisense, JetBrains keymap
-  components/ layout, project tree, editor chrome, commit, vcs, git log, GitHub, search, terminal, plugins
-  plugins/    plugin loader and DOM helpers for plugin clients
-```
-
-## Tests
-
-```bash
-cd logic-ide && PORT=4999 UI_ORIGIN=http://localhost:3015 node dist/main.js &
-cd ui-ide && NEXT_PUBLIC_API_URL=http://localhost:4999 npx next dev -p 3015 &
-sh ../code-editor/scripts/fixture.sh && UI_URL=http://localhost:3015 npm test --workspace ui-ide
-```
+Then open http://localhost:3000.
