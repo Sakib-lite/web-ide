@@ -55,6 +55,7 @@ export const MainMenu = {
         { label: 'Pull Requests', action: () => showTool('pulls') },
         { label: 'Create Pull Request…', action: () => createPullRequestDialog() },
         'sep',
+        { label: 'Share Project on GitHub…', action: () => import('@/components/github/PublishDialog').then((m) => m.openPublishDialog()) },
         { label: 'Clone…', action: () => openCloneDialog(openProject) },
       ] },
       { label: 'View', children: [

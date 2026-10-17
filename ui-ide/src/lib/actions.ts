@@ -59,6 +59,7 @@ export function ideActions(): IdeAction[] {
     { label: 'Pull Requests', run: () => showTool('pulls') },
     { label: 'Create Pull Request…', run: () => createPullRequestDialog() },
     { label: 'Get from Version Control…', run: () => openCloneDialog(openProject) },
+    { label: 'Share Project on GitHub…', run: () => import('@/components/github/PublishDialog').then((m) => m.openPublishDialog()) },
     { label: 'Open Project…', run: async () => { const p = await openProjectDialog(); if (p) openProject(p); } },
     { label: 'New File…', key: '⌘N', run: () => createNode(null, 'file') },
     { label: 'New Directory…', run: () => createNode(null, 'dir') },

@@ -120,6 +120,21 @@ export class GitHubClient {
     return this.request(`/repos/${owner}/${repo}/pulls/${number}`, { method: 'PATCH', body: { state: 'closed' } });
   }
 
+  async repoExists(owner: string, repo: string): Promise<boolean> {
+    try {
+      await this.request(`/repos/${owner}/${repo}`);
+      return true;
+    } catch (err: any) {
+      if (err?.status === 404 || err?.getStatus?.() === 404) return false;
+      throw err;
+    }
+  }
+
+  async createRepo({ name, description, isPrivate }: { name: string; description?: string; isPrivate: boolean }) {
+    const r = await this.request('/user/repos', { method: 'POST', body: { name, description: description || undefined, private: isPrivate, auto_init: false } });
+    return slimRepo(r);
+  }
+
   async repoInfo({ owner, repo }: RepoRef) {
     const r = await this.request(`/repos/${owner}/${repo}`);
     return { ...slimRepo(r), defaultBranch: r.default_branch, openIssues: r.open_issues_count };
