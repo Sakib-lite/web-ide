@@ -16,4 +16,4 @@ A JetBrains-style IDE that runs entirely in the browser, built as a monorepo wit
 npm install && npm run dev
 ```
 
-Then open http://localhost:3000.
+Then open http://web-ide.com — run `sudo ./scripts/setup-local-domain.sh` once (after each reboot) to map the domain locally and forward port 80 to the UI; the API runs on port 4099. Without the domain setup, open http://localhost:3099.
