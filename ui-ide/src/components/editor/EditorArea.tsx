@@ -8,6 +8,8 @@ import { Breadcrumbs } from './Breadcrumbs';
 import { DiffToolbar } from './DiffToolbar';
 import { EmptyEditor } from './EmptyEditor';
 import { MarkdownPreview, isMarkdown, mdMode, setMdMode, type MdMode } from '@/components/markdown/MarkdownPreview';
+import { MergeBanner } from './MergeBanner';
+import { Icon } from '@/components/ui/Icon';
 
 export function EditorArea() {
   const editorHost = useRef<HTMLDivElement>(null);
@@ -30,6 +32,7 @@ export function EditorArea() {
       <Tabs />
       {active && <Breadcrumbs path={active.path} />}
       {active?.kind === 'diff' && <DiffToolbar />}
+      <MergeBanner />
       {isMd && (
         <div className="md-mode-switch">
           <button className={mode === 'editor' ? 'active' : ''} title="Editor only" onClick={() => setMdMode('editor')}><Icon name="edit" /></button>

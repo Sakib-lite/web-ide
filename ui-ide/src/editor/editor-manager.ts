@@ -9,6 +9,7 @@ import { THEME_NAME, configureTypescript, defineTheme, languageFor } from './the
 import { registerDefinitionProvider } from './definitions';
 import { initIntellisense } from './intellisense';
 import { registerKeymap } from './keymap';
+import { registerMergeConflicts } from './merge-conflicts';
 
 export interface DiffOptions {
   key?: string;
@@ -114,6 +115,7 @@ class EditorManager {
     registerDefinitionProvider(monaco, this);
     initIntellisense(monaco, this.editor);
     registerKeymap(monaco, this);
+    registerMergeConflicts(monaco, this.editor);
     this.editor.onDidChangeCursorPosition((e) => (e.source === 'mouse' || e.source === 'keyboard') && this.noteLocation(true));
     on('fs-change', ({ changes }: any) => this.onFsChange(changes));
     on('git-status', () => this.active?.kind === 'file' && this.refreshGutter(this.active));
