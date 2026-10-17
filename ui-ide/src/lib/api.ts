@@ -32,6 +32,12 @@ export async function api<T = any>(path: string, { method = 'GET', body, query, 
   return data as T;
 }
 
+export const favoritesApi = {
+  list: () => api<string[]>('/api/favorites'),
+  add: (path: string) => api<string[]>('/api/favorites', { method: 'POST', body: { path } }),
+  remove: (path: string) => api<string[]>('/api/favorites', { method: 'DELETE', query: { path } }),
+};
+
 export function wsUrl(path: string): string {
   const url = new URL(API_BASE + path);
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
