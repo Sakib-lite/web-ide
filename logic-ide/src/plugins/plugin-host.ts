@@ -30,7 +30,7 @@ interface LoadedPlugin {
   dir: string;
   enabled: boolean;
   error: string | null;
-  served: boolean;
+  static: ReturnType<typeof express.static> | null;
   router: Router | null;
   wsHandler: ((ws: WebSocket, project: Project, url: URL) => void) | null;
 }
@@ -46,6 +46,18 @@ export class PluginHost {
 
   async attach(app: Express) {
     this.app = app;
+    // Single dynamic dispatchers so plugins discovered later (reload, install) still get
+    // routed: middleware mounted per-plugin after bootstrap would land behind Nest's 404.
+    app.use('/plugins/:id', (req, res, next) => {
+      const p = this.plugins.get(req.params.id);
+      if (!p) return next();
+      (p.static ||= express.static(p.dir))(req, res, next);
+    });
+    app.use('/api/plugins/:id', (req, res, next) => {
+      const p = this.plugins.get(req.params.id);
+      if (!p?.enabled || !p.router) return res.status(404).json({ error: 'Plugin disabled or not loaded' });
+      p.router(req, res, next);
+    });
     await this.load();
   }
 
@@ -56,7 +68,6 @@ export class PluginHost {
     const disabled = new Set((await this.settings.get()).disabledPlugins || []);
     for (const p of this.plugins.values()) {
       p.enabled = !disabled.has(p.manifest.id);
-      this.serve(p);
       if (p.enabled && p.manifest.server && !p.router) await this.activate(p);
     }
   }
@@ -76,16 +87,9 @@ export class PluginHost {
         if (!manifest.id) throw new Error('plugin.json has no "id"');
         manifest.builtin = base === PLUGIN_DIRS[0];
         const prev = existing.get(manifest.id);
-        this.plugins.set(manifest.id, { manifest, dir, enabled: true, error: null, served: prev?.served || false, router: prev?.router || null, wsHandler: prev?.wsHandler || null });
+        this.plugins.set(manifest.id, { manifest, dir, enabled: true, error: null, static: prev?.static || null, router: prev?.router || null, wsHandler: prev?.wsHandler || null });
       } catch {}
     }
-  }
-
-  private serve(p: LoadedPlugin) {
-    if (p.served || !this.app) return;
-    this.app.use(`/plugins/${p.manifest.id}`, express.static(p.dir));
-    this.app.use(`/api/plugins/${p.manifest.id}`, (req, res, next) => (p.enabled && p.router ? p.router(req, res, next) : res.status(404).json({ error: 'Plugin disabled' })));
-    p.served = true;
   }
 
   private async activate(p: LoadedPlugin) {
