@@ -22,6 +22,19 @@ export function openChange(path: string) {
   else if (info.status !== 'deleted') editorManager.openDiff(path);
 }
 
+export async function undoLastCommit() {
+  const head = useStore.getState().gitStatus.head;
+  if (!(await confirmDialog(`Undo the last commit${head ? ` (${head})` : ''}? This soft-resets HEAD to the previous commit — your changes stay staged, nothing is lost.`, 'Undo Last Commit'))) return;
+  try {
+    await api('/api/git/reset', { method: 'POST', body: { hash: 'HEAD~1', mode: 'soft' } });
+    toast('Last commit undone', 'Changes are staged and ready to recommit.', 'success');
+    emit('git-change');
+    await refreshGitStatus();
+  } catch (err: any) {
+    toast('Undo failed', err.message, 'error');
+  }
+}
+
 export async function rollback(paths: string[]) {
   if (!paths.length) return;
   if (!(await confirmDialog(`Rollback changes in ${paths.length === 1 ? `"${paths[0]}"` : paths.length + ' files'}? This cannot be undone.`, 'Rollback'))) return;

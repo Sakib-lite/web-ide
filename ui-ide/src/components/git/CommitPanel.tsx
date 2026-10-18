@@ -8,7 +8,7 @@ import { ChangesTree } from './ChangesTree';
 import { CommitForm } from './CommitForm';
 import { ShelfPanel } from './ShelfPanel';
 import { groups, targetPaths, useCommitStore } from './commit-store';
-import { newChangelist, openChange, rollback, shelve } from './commit-actions';
+import { newChangelist, openChange, rollback, shelve, undoLastCommit } from './commit-actions';
 import { refreshGitStatus } from './git-status';
 
 export function CommitPanel() {
@@ -35,6 +35,7 @@ export function CommitPanel() {
         <button className="tb-icon sm" title="Rollback… (⌥⌘Z)" onClick={() => rollback(targetPaths())}><Icon name="rollback" /></button>
         <button className="tb-icon sm" title="Shelve Silently" onClick={() => shelve({ silent: true })}><Icon name="shelve" /></button>
         <button className="tb-icon sm" title="Show Diff (⌘D)" onClick={showDiff}><Icon name="diff" /></button>
+        <button className="tb-icon sm" title="Undo Last Commit (soft reset)" onClick={undoLastCommit}><Icon name="history" /></button>
         <span className="toolbar-sep" />
         {tab === 'commit' && <button className="tb-icon sm" title="New Changelist…" onClick={() => newChangelist()}><Icon name="plus" /></button>}
         <button className="tb-icon sm" title="Expand all" onClick={() => setCollapsedAll([])}><Icon name="expand" /></button>

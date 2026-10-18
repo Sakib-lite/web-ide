@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { openProject, rootFromUrl } from '@/lib/project';
+import { installGlobalErrorLogging } from '@/lib/error-log';
 import { Welcome } from './welcome/Welcome';
 import { ToastHost, toast } from './ui/Toasts';
 import { ContextMenuHost } from './ui/ContextMenu';
@@ -26,6 +27,7 @@ export default function IdeApp() {
     }
   };
   useEffect(() => {
+    installGlobalErrorLogging();
     const root = rootFromUrl();
     if (root) open(root);
   }, []);

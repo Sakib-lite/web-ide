@@ -2,6 +2,7 @@ import type * as Monaco from 'monaco-editor';
 import { fsApi, symApi } from '@/lib/api';
 import { basename, dirname, escapeRegExp } from '@/lib/utils';
 import { enclosingClass } from './definitions';
+import { ensureModels } from './model-cache';
 
 type Family = 'js' | 'php' | 'py';
 const LANGS = ['javascript', 'typescript', 'php', 'python'];
@@ -363,6 +364,7 @@ async function provideReferences(model: Monaco.editor.ITextModel, position: Mona
   const w = model.getWordAtPosition(position);
   if (!w) return [];
   const usages: any[] = await symApi.usages(w.word, relOf(model));
+  await ensureModels(monaco, usages.map((u) => u.file as string));
   return usages.map((u) => ({ uri: monaco.Uri.file('/' + u.file), range: new monaco.Range(u.line, u.col, u.line, u.col + w.word.length) }));
 }
 

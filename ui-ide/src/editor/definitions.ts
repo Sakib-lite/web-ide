@@ -1,6 +1,7 @@
 import type * as Monaco from 'monaco-editor';
 import type { editorManager as Manager } from './editor-manager';
 import { fsApi, symApi } from '@/lib/api';
+import { ensureModels } from './model-cache';
 
 const LANGS = ['javascript', 'typescript', 'php', 'html', 'python'];
 const JS_KEYWORDS = /^(const|let|var|function|class|return|if|else|for|while|import|export|from|new|this|true|false|null|undefined)$/;
@@ -12,7 +13,11 @@ export function registerDefinitionProvider(monaco: typeof Monaco, manager: typeo
       const lineText = model.getLineContent(position.lineNumber);
       const location = (file: string, line = 1, col = 1, len = 0) => ({ uri: monaco.Uri.file('/' + file), range: new monaco.Range(line, col, line, col + len) });
       const inString = await stringTarget(path, lineText, position.column);
-      if (inString !== undefined) return inString ? [location(inString)] : [];
+      if (inString !== undefined) {
+        if (!inString) return [];
+        await ensureModels(monaco, [inString]);
+        return [location(inString)];
+      }
       const word = model.getWordAtPosition(position);
       if (!word || /^\d/.test(word.word)) return [];
       const before = lineText.slice(0, word.startColumn - 1);
@@ -23,7 +28,10 @@ export function registerDefinitionProvider(monaco: typeof Monaco, manager: typeo
       let preferFile: string | null = null;
       if (isPy) {
         const py = await pythonImportTarget(path, lineText, position.column, word.word);
-        if (py.jump) return [location(py.jump)];
+        if (py.jump) {
+          await ensureModels(monaco, [py.jump]);
+          return [location(py.jump)];
+        }
         preferFile = py.preferFile;
       }
       const member = /([A-Za-z_$][\w$]*)\s*(->|::|\.|\?\.)\s*$/.exec(before);
@@ -57,7 +65,9 @@ export function registerDefinitionProvider(monaco: typeof Monaco, manager: typeo
       results = results.filter((r) => !(r.file === path && r.line === position.lineNumber));
       if (!results.length) return [];
       const top = results[0].score;
-      return results.filter((r) => r.score >= top - 5).map((r) => location(r.file, r.line, r.col, word.word.length));
+      const picked = results.filter((r) => r.score >= top - 5);
+      await ensureModels(monaco, picked.map((r) => r.file));
+      return picked.map((r) => location(r.file, r.line, r.col, word.word.length));
     },
   });
   void manager;
