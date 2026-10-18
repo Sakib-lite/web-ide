@@ -82,10 +82,10 @@ class EditorManager {
     configureTypescript(monaco);
     const settings = useStore.getState().settings;
     this.editor = monaco.editor.create(editorHost, {
-      model: null, theme: THEME_NAME, automaticLayout: true, fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, monospace', fontSize: settings.fontSize, fontLigatures: true, lineHeight: 22,
+      model: null, theme: THEME_NAME, automaticLayout: true, fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, monospace', fontSize: settings.fontSize, fontLigatures: settings.fontLigatures, lineHeight: 22,
       minimap: { enabled: settings.minimap, renderCharacters: false, maxColumn: 80 }, wordWrap: settings.wordWrap, renderLineHighlight: 'all', scrollBeyondLastLine: true, smoothScrolling: true,
-      cursorBlinking: 'smooth', cursorSmoothCaretAnimation: 'on', padding: { top: 6 }, bracketPairColorization: { enabled: true }, guides: { bracketPairs: true, indentation: true }, tabSize: 4,
-      lineDecorationsWidth: 14, folding: true, showFoldingControls: 'mouseover', renderWhitespace: 'selection', quickSuggestions: { other: true, comments: false, strings: true }, stickyScroll: { enabled: true },
+      cursorBlinking: 'smooth', cursorSmoothCaretAnimation: 'on', padding: { top: 6 }, bracketPairColorization: { enabled: true }, guides: { bracketPairs: true, indentation: true }, tabSize: settings.tabSize,
+      lineDecorationsWidth: 14, folding: true, showFoldingControls: 'mouseover', renderWhitespace: 'selection', quickSuggestions: { other: true, comments: false, strings: true }, stickyScroll: { enabled: settings.stickyScroll },
       unicodeHighlight: { ambiguousCharacters: false },
     });
     this.diffEditor = monaco.editor.createDiffEditor(diffHost, { theme: THEME_NAME, automaticLayout: true, originalEditable: false, renderSideBySide: settings.diffSideBySide, ignoreTrimWhitespace: settings.diffIgnoreWs, fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, monospace', fontSize: settings.fontSize, lineHeight: 22, minimap: { enabled: false }, scrollBeyondLastLine: false, renderMarginRevertIcon: true, diffAlgorithm: 'advanced' });
@@ -116,8 +116,9 @@ class EditorManager {
 
   applySettings() {
     const s = useStore.getState().settings;
-    this.editor.updateOptions({ fontSize: s.fontSize, wordWrap: s.wordWrap, minimap: { enabled: s.minimap } });
+    this.editor.updateOptions({ fontSize: s.fontSize, wordWrap: s.wordWrap, minimap: { enabled: s.minimap }, fontLigatures: s.fontLigatures, stickyScroll: { enabled: s.stickyScroll } });
     this.diffEditor.updateOptions({ fontSize: s.fontSize, renderSideBySide: s.diffSideBySide, ignoreTrimWhitespace: s.diffIgnoreWs });
+    for (const t of this.tabs.values()) t.model.updateOptions({ tabSize: s.tabSize });
   }
 
   changeFontSize(delta: number) {
@@ -167,7 +168,9 @@ class EditorManager {
     let model = this.monaco.editor.getModel(uri);
     if (!model) model = this.monaco.editor.createModel(content, languageFor(path), uri);
     else if (model.getValue() !== content) model.setValue(content);
-    const tab: Tab = { key: path, path, kind: 'file', model, dirty: false, preview, savedVersion: model.getAlternativeVersionId(), saving: false, decorations: [], blame: null, blameDecorations: [], save: debounce(() => this.save(tab), 900), gutter: debounce(() => this.refreshGutter(tab), 500) };
+    const settings = useStore.getState().settings;
+    model.updateOptions({ tabSize: settings.tabSize });
+    const tab: Tab = { key: path, path, kind: 'file', model, dirty: false, preview, savedVersion: model.getAlternativeVersionId(), saving: false, decorations: [], blame: null, blameDecorations: [], save: debounce(() => this.save(tab), settings.autoSaveDelay || 900), gutter: debounce(() => this.refreshGutter(tab), 500) };
     model.onDidChangeContent(() => {
       const dirty = model!.getAlternativeVersionId() !== tab.savedVersion;
       if (dirty) {
