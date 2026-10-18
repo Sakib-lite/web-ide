@@ -61,7 +61,7 @@ class EditorManager {
   private navIndex = -1;
   private navigating = false;
   private readonly listeners = new Set<Listener>();
-  private ready = false;
+  private initPromise: Promise<void> | null = null;
 
   onChange(listener: Listener) {
     this.listeners.add(listener);
@@ -73,8 +73,13 @@ class EditorManager {
     for (const l of this.listeners) l();
   }
 
-  async init(editorHost: HTMLElement, diffHost: HTMLElement) {
-    if (this.ready) return;
+  init(editorHost: HTMLElement, diffHost: HTMLElement): Promise<void> {
+    // Memoized: React dev StrictMode mounts effects twice, and a `ready` flag set at
+    // the end of the async body lets the second call create a duplicate editor.
+    return (this.initPromise ||= this.doInit(editorHost, diffHost));
+  }
+
+  private async doInit(editorHost: HTMLElement, diffHost: HTMLElement) {
     loader.config({ paths: { vs: '/monaco/vs' } });
     this.monaco = (await loader.init()) as typeof Monaco;
     const monaco = this.monaco;
@@ -105,7 +110,6 @@ class EditorManager {
     on('git-status', () => this.active?.kind === 'file' && this.refreshGutter(this.active));
     on('focus-editor', () => this.editor.focus());
     useStore.subscribe((s, prev) => s.settings !== prev.settings && this.applySettings());
-    this.ready = true;
     this.notify();
   }
 
