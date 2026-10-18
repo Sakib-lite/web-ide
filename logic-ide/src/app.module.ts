@@ -13,9 +13,11 @@ import { AiController } from './ai/ai.controller';
 import { PluginHost } from './plugins/plugin-host';
 import { PluginsController } from './plugins/plugins.controller';
 import { LogsController } from './logs/logs.controller';
+import { HistoryService } from './history/history.service';
+import { HistoryController } from './history/history.controller';
 
 @Module({
-  controllers: [SettingsController, ProjectsController, FsController, GitController, ChangelistsController, SymbolsController, GithubController, AiController, PluginsController, LogsController],
-  providers: [SettingsService, ProjectsService, CloneService, PluginHost],
+  controllers: [SettingsController, ProjectsController, FsController, GitController, ChangelistsController, SymbolsController, GithubController, AiController, PluginsController, LogsController, HistoryController],
+  providers: [SettingsService, ProjectsService, CloneService, PluginHost, HistoryService],
 })
 export class AppModule {}

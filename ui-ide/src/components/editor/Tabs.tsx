@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { showContextMenu } from '@/components/ui/ContextMenu';
 import { basename, copyText } from '@/lib/utils';
 import { locateInTree } from '@/components/project/tree-actions';
+import { openLocalHistory } from './LocalHistoryDialog';
 import { emit } from '@/lib/bus';
 
 function Tab({ tab, active }: { tab: TabInfo; active: boolean }) {
@@ -22,6 +23,7 @@ function Tab({ tab, active }: { tab: TabInfo; active: boolean }) {
       { label: 'Copy Path', action: () => copyText(`${useStore.getState().project?.root}/${tab.path}`) },
       { label: 'Show Diff', hidden: !gitStatus || tab.kind === 'diff', action: () => editorManager.openDiff(tab.path) },
       { label: 'Show History', hidden: tab.kind === 'diff', action: () => emit('log-filter-path', { path: tab.path }) },
+      { label: 'Local History', hidden: tab.kind === 'diff', action: () => openLocalHistory(tab.path) },
       { label: tab.blame ? 'Close Annotations' : 'Annotate with Git Blame', hidden: tab.kind === 'diff', action: () => editorManager.toggleBlame(editorManager.tabs.get(tab.key)) },
     ]);
   };
