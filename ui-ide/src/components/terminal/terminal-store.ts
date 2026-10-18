@@ -35,7 +35,7 @@ export const useTerminals = create<TerminalState>((set, get) => ({
   activeId: null,
   create: ({ cwd, command } = {}) => {
     const id = ++counter;
-    const term = new Terminal({ theme: THEME, fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, monospace', fontSize: 12.5, lineHeight: 1.2, cursorBlink: true, cursorStyle: 'bar', allowProposedApi: true, scrollback: 5000, macOptionIsMeta: true });
+    const term = new Terminal({ theme: THEME, fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, monospace', fontSize: useStore.getState().settings.terminalFontSize || 12.5, lineHeight: 1.2, cursorBlink: true, cursorStyle: 'bar', allowProposedApi: true, scrollback: 5000, macOptionIsMeta: true });
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.loadAddon(new WebLinksAddon());
@@ -76,6 +76,16 @@ export const useTerminals = create<TerminalState>((set, get) => ({
     if (!remaining.length) useStore.getState().hideTool('terminal');
   },
 }));
+
+if (typeof window !== 'undefined') {
+  useStore.subscribe((s, prev) => {
+    if (s.settings.terminalFontSize === prev.settings.terminalFontSize) return;
+    for (const session of useTerminals.getState().sessions) {
+      session.term.options.fontSize = s.settings.terminalFontSize;
+      session.fit.fit();
+    }
+  });
+}
 
 export function runInTerminal(command: string, cwd?: string) {
   useStore.getState().showTool('terminal');

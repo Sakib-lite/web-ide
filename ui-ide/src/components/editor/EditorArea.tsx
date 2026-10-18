@@ -15,7 +15,7 @@ export function EditorArea() {
   const activeKey = useStore((s) => s.activeTab);
   const active = tabs.find((t) => t.key === activeKey);
   useEffect(() => {
-    editorManager.init(editorHost.current!, diffHost.current!);
+    editorManager.init(editorHost.current!, diffHost.current!).then(() => editorManager.restoreTabs());
   }, []);
   return (
     <section className="editor-area">

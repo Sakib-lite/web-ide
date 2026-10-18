@@ -1,0 +1,12 @@
+{
+  "id": "task-manager",
+  "name": "Tasks",
+  "version": "1.0.0",
+  "vendor": "web-ide",
+  "description": "Save named shell commands per project and run them in the terminal. Tasks are stored on the server, so they survive browser refreshes.",
+  "icon": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='currentColor' stroke-width='1.3'><path d='M2.5 4.5l1.5 1.5 2.5-2.5'/><path d='M9 5h4.5'/><path d='M2.5 10.5l1.5 1.5 2.5-2.5'/><path d='M9 11h4.5'/></svg>",
+  "client": "client.js",
+  "server": "server.mjs",
+  "styles": "style.css",
+  "toolWindow": { "side": "right", "title": "Tasks", "shortcut": "⌘⇧T" }
+}
