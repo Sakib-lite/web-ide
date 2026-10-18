@@ -1,7 +1,7 @@
 import { fsApi } from '@/lib/api';
 import { useStore } from '@/lib/store';
 import { emit } from '@/lib/bus';
-import { dirname } from '@/lib/utils';
+import { copyText, dirname } from '@/lib/utils';
 import { confirmDialog, promptDialog } from '@/components/ui/dialogs';
 import { toast } from '@/components/ui/Toasts';
 import { MenuItem } from '@/components/ui/ContextMenu';
@@ -68,7 +68,7 @@ export async function deleteNode(node: TreeNode) {
   }
 }
 
-const copy = (text: string) => navigator.clipboard?.writeText(text).then(() => toast('Copied', text, 'info', 1800));
+const copy = async (text: string) => (await copyText(text)) && toast('Copied', text, 'info', 1800);
 
 export function nodeMenu(node: TreeNode): MenuItem[] {
   const tree = getTreeApi()!;
