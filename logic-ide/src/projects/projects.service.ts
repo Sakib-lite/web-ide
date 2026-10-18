@@ -47,7 +47,7 @@ export class ProjectsService {
 
   require(root: string | undefined): Project {
     const p = this.get(root);
-    if (!p) fail('Project not open. Reload the page and open the project again.', 409);
+    if (!p) fail('Project not open. Reload the page and open the project again.', 409, 'NO_PROJECT');
     return p!;
   }
 
