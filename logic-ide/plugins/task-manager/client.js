@@ -33,11 +33,13 @@ export function activate(api) {
         { name: 'name', label: 'Name:', value: existing?.name || '', placeholder: 'e.g. Dev server' },
         { type: 'textarea', name: 'command', label: 'Command:', rows: 3, value: existing?.command || '', placeholder: 'npm run dev' },
         { name: 'cwd', label: 'Working directory (optional):', value: existing?.cwd || '', placeholder: 'defaults to the project root' },
+        { type: 'select', name: 'scope', label: 'Scope:', options: ['Project', 'Global'], value: existing?.global ? 'Global' : 'Project' },
+        { type: 'static', content: 'Global tasks are shown in every project and run in the current project root.' },
       ],
       validate: (x) => (!String(x.name).trim() ? 'Name is required' : !String(x.command).trim() ? 'Command is required' : undefined),
     });
     if (!v) return;
-    await save({ id: existing?.id, name: v.name, command: v.command, cwd: v.cwd });
+    await save({ id: existing?.id, name: v.name, command: v.command, cwd: v.cwd, global: v.scope === 'Global' });
   };
 
   const run = (t) => {
@@ -48,7 +50,7 @@ export function activate(api) {
     const { el } = api;
     return el('div', { class: 'tm-row', ondblclick: () => run(t), title: 'Double-click to run' },
       el('div', { class: 'tm-info' },
-        el('div', { class: 'tm-name' }, t.name),
+        el('div', { class: 'tm-name' }, t.name, t.global ? el('span', { class: 'tm-badge', title: 'Available in all projects' }, 'Global') : null),
         el('div', { class: 'tm-cmd', title: t.command }, (t.cwd ? t.cwd + ' $ ' : '') + t.command),
       ),
       el('div', { class: 'tm-actions' },
@@ -72,7 +74,7 @@ export function activate(api) {
         ? el('div', { class: 'tm-empty' }, 'Open a project to manage its tasks.')
         : tasks.length
           ? el('div', { class: 'tm-list' }, tasks.map(row))
-          : el('div', { class: 'tm-empty' }, 'No tasks yet. Click “+ Add Task” to save a command. Tasks are stored per project on the server, so they survive browser refreshes.'),
+          : el('div', { class: 'tm-empty' }, 'No tasks yet. Click “+ Add Task” to save a command. Tasks are stored on the server — project tasks only in this project, global tasks in every project.'),
     );
   }
 
