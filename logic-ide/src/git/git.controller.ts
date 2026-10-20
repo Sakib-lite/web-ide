@@ -58,6 +58,27 @@ export class GitController {
     return ok(this.git(root).revert(paths));
   }
 
+  @Get('conflicts')
+  async conflicts(@Root() root: string) {
+    return { files: await this.git(root).conflicts() };
+  }
+
+  @Get('merge-state')
+  mergeState(@Root() root: string) {
+    return this.git(root).mergeState();
+  }
+
+  @Post('resolve-conflict')
+  async resolveConflict(@Root() root: string, @Body() body: { path: string; strategy: 'ours' | 'theirs' }) {
+    await this.git(root).resolveConflict(body.path, body.strategy);
+    return ok(true);
+  }
+
+  @Get('merge-view')
+  async mergeView(@Root() root: string, @Query('path') rel: string) {
+    return this.git(root).mergeView(rel);
+  }
+
   @Post('commit')
   commit(@Root() root: string, @Body() body: { message: string; paths: string[]; amend?: boolean }) {
     return ok(this.git(root).commit(body.message, body.paths, !!body.amend));
@@ -126,6 +147,11 @@ export class GitController {
   @Post('abort')
   abort(@Root() root: string, @Body('op') op: string) {
     return ok(this.git(root).abort(op));
+  }
+
+  @Post('complete-merge')
+  completeMerge(@Root() root: string) {
+    return ok(this.git(root).completeMerge());
   }
 
   @Post('continue')

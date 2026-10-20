@@ -8,6 +8,9 @@ import { RunWidget } from './RunWidget';
 import { MainMenu } from './MainMenu';
 import { openBranchPopup } from '@/components/vcs/BranchPopup';
 import { pushDialog, updateProject } from '@/components/vcs/vcs-actions';
+import { gitApi } from '@/lib/api';
+import { refreshGitStatus } from '@/components/git/git-status';
+import { toast } from '@/components/ui/Toasts';
 import { focusCommitMessage } from '@/components/git/commit-actions';
 import { openSearchEverywhere } from '@/components/search/SearchEverywhere';
 import { openFindInFiles } from '@/components/search/search-actions';
@@ -34,6 +37,40 @@ export function TitleBar() {
           {sync && <span className="branch-sync">{sync}</span>}
           <Icon name="chevron-down" />
         </button>
+        {git.repo && git.operation === 'merge' && (
+          <span className="tb-merging" id="merge-state">
+            <Icon name="git" />
+            <span>Merging {branchLabel}</span>
+            <button
+              title="Complete merge (commit)"
+              onClick={async () => {
+                try {
+                  await gitApi.completeMerge();
+                  await refreshGitStatus();
+                  toast('Merge completed', 'Merge commit created', 'success');
+                } catch (err: any) {
+                  toast('Cannot complete merge', err.message, 'error');
+                }
+              }}
+            >
+              <Icon name="check" />
+            </button>
+            <button
+              title="Abort merge"
+              onClick={async () => {
+                try {
+                  await gitApi.abortOp('merge');
+                  await refreshGitStatus();
+                  toast('Merge aborted', 'Working tree restored', 'info');
+                } catch (err: any) {
+                  toast('Abort failed', err.message, 'error');
+                }
+              }}
+            >
+              <Icon name="close" />
+            </button>
+          </span>
+        )}
         <div className="vcs-quick">
           <button className="tb-icon" title="Update Project (⌘T)" onClick={() => updateProject()}><Icon name="update" /></button>
           <button className="tb-icon" title="Commit (⌘K)" onClick={focusCommitMessage}><Icon name="commit" /></button>

@@ -36,7 +36,7 @@ export class Git {
   }
 
   async isRepo(): Promise<boolean> {
-    if (this.available !== null) return this.available;
+    if (this.available) return this.available;
     try {
       this.available = (await this.exec(['rev-parse', '--is-inside-work-tree'])).trim() === 'true';
     } catch {
@@ -165,7 +165,7 @@ export class Git {
       const item = { name: short, hash, date: Number(date) * 1000, subject, current: head === '*' };
       if (refname.startsWith('refs/heads/')) local.push({ ...item, upstream: upstream || null, ahead: m ? Number(m[1] || 0) : 0, behind: m ? Number(m[2] || 0) : 0, gone: /gone/.test(track || '') });
       else if (refname.startsWith('refs/remotes/')) {
-        if (!short.endsWith('/HEAD')) remote.push({ ...item, remote: short.split('/')[0], branch: short.split('/').slice(1).join('/') });
+        if (!refname.endsWith('/HEAD')) remote.push({ ...item, remote: short.split('/')[0], branch: short.split('/').slice(1).join('/') });
       } else tags.push(item);
     }
     const current = await this.branch();
@@ -213,12 +213,82 @@ export class Git {
     return this.exec(['merge', '--no-edit', ...(noFf ? ['--no-ff'] : []), ...(squash ? ['--squash'] : []), ref], { log: true });
   }
 
+  async conflicts(): Promise<string[]> {
+    const res = await this.exec(['diff', '--name-only', '--diff-filter=U']);
+    return res.trim() ? res.trim().split('\n') : [];
+  }
+
+  async resolveConflict(path: string, strategy: 'ours' | 'theirs') {
+    await this.exec(['checkout', strategy === 'ours' ? '--ours' : '--theirs', '--', path], { log: true });
+    return this.exec(['add', '--', path], { log: true });
+  }
+
+  async mergeState() {
+    const op = await this.operationInProgress();
+    const ours = (await this.exec(['rev-parse', '--abbrev-ref', 'HEAD']).catch(() => null))?.trim() ?? null;
+    let theirs: string | null = null;
+    if (op === 'merge') {
+      try {
+        const gitDir = path.resolve(this.root, (await this.exec(['rev-parse', '--git-dir'])).trim());
+        const msg = await fs.readFile(path.join(gitDir, 'MERGE_MSG'), 'utf8').catch(() => '');
+        theirs = /^Merge (?:branch|remote-tracking branch) '([^']+)'/.exec(msg)?.[1] ?? null;
+      } catch {}
+      if (!theirs) {
+        const sha = (await this.exec(['rev-parse', 'MERGE_HEAD']).catch(() => null))?.trim();
+        if (sha) theirs = (await this.exec(['name-rev', '--name-only', '--refs=refs/heads/*', '--no-undefined', sha]).catch(() => null))?.trim() ?? (await this.exec(['rev-parse', '--short', 'MERGE_HEAD']).catch(() => null))?.trim() ?? null;
+      }
+    }
+    const raw = await this.exec(['ls-files', '-u', '-z']).catch(() => '');
+    const stages = new Map<string, Set<string>>();
+    for (const entry of raw.split('\0')) {
+      if (!entry) continue;
+      const m = /^(\d+) (\w+) (\d+)\t(.+)$/.exec(entry);
+      if (!m) continue;
+      const path = m[4];
+      if (!stages.has(path)) stages.set(path, new Set());
+      stages.get(path)!.add(m[3]);
+    }
+    type Side = 'modified' | 'added' | 'deleted';
+    const side = (has: boolean, hasBase: boolean): Side => (has ? (hasBase ? 'modified' : 'added') : 'deleted');
+    const files = [...stages.entries()].sort().map(([path, s]) => ({
+      path,
+      ours: side(s.has('2'), s.has('1')),
+      theirs: side(s.has('3'), s.has('1')),
+    }));
+    return { operation: op, ours, theirs, files };
+  }
+
+  async mergeView(rel: string): Promise<{ base: string | null; ours: string | null; theirs: string | null; merged: string | null }> {
+    const read = (rev: string) => this.exec(['show', `${rev}:${rel}`]).catch(() => null);
+    const [base, ours, theirs] = await Promise.all([read(':1'), read(':2'), read(':3')]);
+    let merged: string | null = null;
+    if (base != null && ours != null && theirs != null) {
+      const dir = await fs.mkdtemp(path.join(await import('node:os').then((m) => m.tmpdir()), 'webide-merge-'));
+      try {
+        const [fo, fb, ft] = [ours, base, theirs];
+        const po = path.join(dir, 'o'), pb = path.join(dir, 'b'), pt = path.join(dir, 't');
+        await Promise.all([fs.writeFile(po, fo), fs.writeFile(pb, fb), fs.writeFile(pt, ft)]);
+        const { execFile } = await import('node:child_process');
+        const promisified = (await import('node:util')).promisify(execFile) as any;
+        const res = await promisified('git', ['merge-file', '-p', '--diff3', '-L', 'yours', '-L', 'base', '-L', 'theirs', po, pb, pt], { maxBuffer: 20 * 1024 * 1024 }).catch((err: any) => err);
+        merged = String(res?.stdout ?? '');
+      } finally {
+        await fs.rm(dir, { recursive: true, force: true }).catch(() => undefined);
+      }
+    }
+    return { base, ours, theirs, merged };
+  }
+
   rebase(onto: string) {
     return this.exec(['rebase', onto], { log: true });
   }
 
   abort(op: string) {
     return this.exec([op, '--abort'], { log: true });
+  }
+
+  completeMerge() {
+    return this.exec(['commit', '--no-edit'], { log: true });
   }
 
   continueOp(op: string) {

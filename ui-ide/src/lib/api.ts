@@ -87,6 +87,12 @@ export const gitApi = {
   commit: (message: string, paths: string[], amend: boolean) => api('/api/git/commit', { method: 'POST', body: { message, paths, amend } }),
   blame: (path: string) => api('/api/git/blame', { query: { path } }),
   branches: () => api('/api/git/branches'),
+  conflicts: () => api<{ files: string[] }>('/api/git/conflicts'),
+  mergeState: () => api<{ operation: string | null; ours: string | null; theirs: string | null; files: { path: string; ours: 'modified' | 'added' | 'deleted'; theirs: 'modified' | 'added' | 'deleted' }[] }>('/api/git/merge-state'),
+  resolveConflict: (path: string, strategy: 'ours' | 'theirs') => api('/api/git/resolve-conflict', { method: 'POST', body: { path, strategy } }),
+  mergeView: (path: string) => api<{ base: string | null; ours: string | null; theirs: string | null; merged: string | null }>('/api/git/merge-view', { query: { path } }),
+  abortOp: (op: string) => api('/api/git/abort', { method: 'POST', body: { op } }),
+  completeMerge: () => api('/api/git/complete-merge', { method: 'POST', body: {} }),
   config: () => api<{ name: string; email: string }>('/api/git/config'),
 };
 
