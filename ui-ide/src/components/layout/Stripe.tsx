@@ -3,6 +3,7 @@
 import { Side, isToolVisible, useStore } from '@/lib/store';
 import { Icon } from '@/components/ui/Icon';
 import { useCommitBadge } from '@/components/git/useCommitBadge';
+import { openSettingsDialog } from '@/components/github/SettingsDialog';
 
 const LEFT_TOP = ['project', 'commit', 'pulls', 'structure'];
 const LEFT_BOTTOM = ['terminal', 'git', 'find'];
@@ -29,7 +30,14 @@ export function Stripe({ side }: { side: Exclude<Side, 'bottom'> }) {
   return (
     <nav className={`stripe stripe-${side}`}>
       <div className="stripe-top">{top.map((id) => <StripeButton key={id} id={id} />)}</div>
-      <div className="stripe-bottom">{bottom.map((id) => <StripeButton key={id} id={id} />)}</div>
+      <div className="stripe-bottom">
+        {bottom.map((id) => <StripeButton key={id} id={id} />)}
+        {side === 'left' && (
+          <button className="stripe-btn" title="Keymap Reference (⌘, → Keymap)" onClick={() => openSettingsDialog('keymap')}>
+            <Icon name="keymap" />
+          </button>
+        )}
+      </div>
     </nav>
   );
 }

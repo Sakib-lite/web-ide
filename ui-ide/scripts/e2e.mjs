@@ -117,6 +117,89 @@ try {
   check('search results', (await count('.se-item')) > 0);
   await page.keyboard.press('Escape');
 
+  await page.keyboard.press('Meta+Digit1');
+  await page.waitForTimeout(500);
+  await expand('src');
+  await openFile('src/format.js');
+  await page.evaluate(() => { const ed = monaco.editor.getEditors()[0]; ed.setSelection(new monaco.Range(1, 1, 1, 6)); ed.focus(); });
+  const expectSel = await page.evaluate(() => monaco.editor.getEditors()[0].getModel().getValueInRange(new monaco.Range(1, 1, 1, 6)));
+  await page.keyboard.press('Shift');
+  await page.keyboard.press('Shift');
+  await page.waitForTimeout(400);
+  const prefill = await page.inputValue('.popup .se-input input');
+  check('double-shift prefills selection', expectSel.length > 0 && prefill === expectSel, `${JSON.stringify(prefill)} vs ${JSON.stringify(expectSel)}`);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+
+  await page.keyboard.press('Meta+Comma');
+  await page.waitForSelector('.settings-nav', { timeout: 4000 });
+  await page.click('.settings-nav button:has-text("Keymap")');
+  await page.waitForTimeout(300);
+  const kmRows = await count('.km-row');
+  check('keymap guide lists shortcuts', kmRows >= 40, `${kmRows} rows`);
+  await page.fill('.km-search input', 'rename');
+  await page.waitForTimeout(300);
+  const kmFiltered = await count('.km-row');
+  check('keymap guide filter narrows', kmFiltered >= 1 && kmFiltered < kmRows, `${kmFiltered} of ${kmRows} rows`);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+
+  const tabsBefore = await count('.tab');
+  await page.keyboard.press('Meta+F4');
+  await page.waitForTimeout(400);
+  check('⌘F4 closes tab', (await count('.tab')) === tabsBefore - 1, `${tabsBefore} → ${await count('.tab')}`);
+
+  await page.click('.stripe-left .stripe-bottom button[title^="Keymap"]');
+  await page.waitForTimeout(300);
+  check('keymap stripe button opens guide', (await count('.km-row')) > 40, `${await count('.km-row')} rows`);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+
+  const apiBase = process.env.API_URL || ((u) => ((u.port = '4099'), u.origin))(new URL(base));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  if (!(await page.isVisible('.tree-row[data-path="src"]'))) {
+    await page.click('.stripe-left .stripe-btn[data-tool="project"]');
+    await page.waitForTimeout(500);
+  }
+  await fetch(`${apiBase}/api/fs/write?root=${encodeURIComponent(project)}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ root: project, path: 'sample-preview.md', content: '# Demo Guide\n\nIntro with `inline code`.\n\n## Install\n\n```bash\nnpm install demo\n```\n\n## Usage\n\n- item one\n- item two\n\n### Advanced\n\nText after outline levels.\n' }),
+  });
+  await page.waitForSelector('.tree-row[data-path="sample-preview.md"]', { timeout: 6000 }).catch(() => {});
+  await page.dblclick('.tree-row[data-path="sample-preview.md"]');
+  await page.waitForTimeout(1200);
+  const editorHidden = () => page.$eval('#editor', (e) => e.classList.contains('hidden')).catch(() => true);
+  check('markdown full preview by default', (await count('.mdv .prose h1')) === 1 && (await count('.mdv .prose h2')) === 2 && (await editorHidden()), `h1=${await count('.mdv .prose h1')} editorHidden=${await editorHidden()}`);
+  check('markdown text is selectable', (await page.$eval('.mdv .prose', (e) => getComputedStyle(e).userSelect)) === 'text', await page.$eval('.mdv .prose', (e) => getComputedStyle(e).userSelect).catch(() => '?'));
+  check('markdown outline lists headings', (await count('.mdv-toc')) === 3, `${await count('.mdv-toc')} toc entries`);
+  check('markdown code highlighted with copy', (await count('.mdv .copy-btn')) === 1 && /bash/.test(await text('.mdv .code-lang')), await text('.mdv .code-lang'));
+  const reopenMd = async () => {
+    if (!(await page.isVisible('.mdv-header'))) {
+      await page.dblclick('.tree-row[data-path="sample-preview.md"]');
+      await page.waitForTimeout(500);
+    }
+  };
+  await reopenMd();
+  await page.click('.mdv-header .tb-icon[title^="Hide outline"]');
+  await page.waitForTimeout(200);
+  check('outline hides', (await count('.mdv-outline')) === 0);
+  await reopenMd();
+  await page.click('.md-mode-switch button[title="Editor and Preview"]');
+  await page.waitForTimeout(400);
+  check('split mode shows editor and preview', !(await editorHidden()) && (await count('.mdv .prose h1')) === 1);
+  await reopenMd();
+  await page.keyboard.press('Meta+Shift+KeyV');
+  await page.waitForTimeout(300);
+  check('⌘⇧V split → full preview', (await editorHidden()) && (await count('.mdv .prose h1')) === 1);
+  await page.keyboard.press('Meta+Shift+KeyV');
+  await page.waitForTimeout(300);
+  check('⌘⇧V preview → editor only', (await count('.mdv')) === 0 && !(await editorHidden()));
+  await page.keyboard.press('Meta+Shift+KeyV');
+  await page.waitForTimeout(400);
+  check('⌘⇧V editor → split', !(await editorHidden()) && (await count('.mdv .prose h1')) === 1);
+
   check('plugin stripe button', (await count('.stripe-right .stripe-btn[data-tool="claude-code"]')) === 1);
   await page.click('.stripe-right .stripe-btn[data-tool="claude-code"]');
   await page.waitForTimeout(800);
