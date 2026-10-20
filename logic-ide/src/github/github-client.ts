@@ -78,7 +78,7 @@ export class GitHubClient {
       author: p.user?.login, avatar: p.user?.avatar_url, createdAt: p.created_at, updatedAt: p.updated_at, url: p.html_url,
       head: { ref: p.head.ref, sha: p.head.sha, repo: p.head.repo?.full_name, label: p.head.label }, base: { ref: p.base.ref, sha: p.base.sha },
       additions: p.additions, deletions: p.deletions, changedFiles: p.changed_files, commits: p.commits, reviewComments: p.review_comments,
-      labels: (p.labels || []).map(slimLabel),
+      labels: (p.labels || []).map(slimLabel), requestedReviewers: (p.requested_reviewers || []).map((u: any) => u.login),
     };
   }
 
@@ -118,6 +118,21 @@ export class GitHubClient {
 
   closePull({ owner, repo }: RepoRef, number: number) {
     return this.request(`/repos/${owner}/${repo}/pulls/${number}`, { method: 'PATCH', body: { state: 'closed' } });
+  }
+
+  editPull({ owner, repo }: RepoRef, number: number, body: { title?: string; body?: string }) {
+    const patch: Record<string, string> = {};
+    if (typeof body.title === 'string' && body.title.trim()) patch.title = body.title.trim();
+    if (typeof body.body === 'string') patch.body = body.body;
+    return this.request(`/repos/${owner}/${repo}/pulls/${number}`, { method: 'PATCH', body: patch });
+  }
+
+  requestReviewers({ owner, repo }: RepoRef, number: number, reviewers: string[]) {
+    return this.request(`/repos/${owner}/${repo}/pulls/${number}/requested_reviewers`, { method: 'POST', body: { reviewers } });
+  }
+
+  removeReviewer({ owner, repo }: RepoRef, number: number, login: string) {
+    return this.request(`/repos/${owner}/${repo}/pulls/${number}/requested_reviewers`, { method: 'DELETE', body: { reviewers: [login] } });
   }
 
   async repoExists(owner: string, repo: string): Promise<boolean> {

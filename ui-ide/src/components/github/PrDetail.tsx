@@ -32,6 +32,7 @@ interface Pull {
   commits: number;
   reviewComments: number;
   labels: { name: string; color: string }[];
+  requestedReviewers: string[];
   files: { path: string; status: string; additions: number; deletions: number; previous?: string }[];
   timeline: { type: string; state?: string; author: string; avatar: string; body: string; at: string }[];
   checks: { name: string; status: string; conclusion: string | null; url: string }[];
@@ -75,6 +76,50 @@ export function PrDetail({ number }: { number: number }) {
   if (error) return <div className="pr-detail"><div className="prd-head">{back}</div><div className="empty-hint">{error}</div></div>;
   if (!p) return <div className="pr-detail"><div className="prd-head">{back}</div><div className="empty-hint">Loading…</div></div>;
   const st = stateOf(p);
+  const editDialog = () =>
+    formDialog({
+      title: `Edit pull request #${p.number}`,
+      okText: 'Save',
+      width: 560,
+      fields: [
+        { name: 'title', label: 'Title:', value: p.title },
+        { type: 'textarea', name: 'body', label: 'Description:', rows: 8, value: p.body },
+      ],
+      validate: (v) => (!String(v.title).trim() ? 'Title is required' : undefined),
+      onSubmit: async (v) => {
+        await api(`/api/github/pulls/${p.number}`, { method: 'PATCH', body: v });
+        toast('Pull request updated', `#${p.number}`, 'success');
+        setTick((n) => n + 1);
+        usePullsStore.getState().refresh(true);
+      },
+    });
+  const addReviewer = async () => {
+    try {
+      const candidates = await api<string[]>('/api/github/collaborators');
+      const options = candidates.filter((c) => c !== p.author && !p.requestedReviewers.includes(c));
+      if (!options.length) return toast('No reviewer candidates', 'Every collaborator is already requested (or is the PR author).', 'info');
+      await formDialog({
+        title: `Request review on #${p.number}`,
+        okText: 'Request review',
+        fields: [{ type: 'select', name: 'login', label: 'Reviewer:', options }],
+        onSubmit: async (v) => {
+          await api(`/api/github/pulls/${p.number}/reviewers`, { method: 'POST', body: { reviewers: [v.login] } });
+          toast('Review requested', `@${v.login} on #${p.number}`, 'success');
+          setTick((n) => n + 1);
+        },
+      });
+    } catch (err: any) {
+      toast('Could not add reviewer', err.message, 'error');
+    }
+  };
+  const removeReviewer = async (login: string) => {
+    try {
+      await api(`/api/github/pulls/${p.number}/reviewers?login=${encodeURIComponent(login)}`, { method: 'DELETE' });
+      setTick((n) => n + 1);
+    } catch (err: any) {
+      toast('Could not remove reviewer', err.message, 'error');
+    }
+  };
   const openDiff = async (f: Pull['files'][number]) => {
     try {
       if (!fetched) {
@@ -112,9 +157,19 @@ export function PrDetail({ number }: { number: number }) {
       <div className="prd-actions">
         <button className="btn" onClick={checkout}>Checkout</button>
         <button className="btn" onClick={() => window.open(p.url, '_blank')}>Open on GitHub</button>
+        {!p.merged && p.state === 'open' && <button className="btn" onClick={editDialog}>Edit…</button>}
         {!p.merged && p.state === 'open' && <button className="btn primary" onClick={() => mergeDialog(p)}>Merge…</button>}
         {!p.merged && p.state === 'open' && <button className="btn" onClick={closePr}>Close</button>}
       </div>
+      {!p.merged && p.state === 'open' && (
+        <div className="prd-section"><h4>Reviewers</h4>
+          <div className="prd-reviewers">
+            {p.requestedReviewers.map((r) => <span key={r} className="label-chip reviewer-chip">@{r}<span className="chip-x" title="Remove reviewer" onClick={() => removeReviewer(r)}>✕</span></span>)}
+            {!p.requestedReviewers.length && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>No reviewers requested.</span>}
+            <button className="btn" onClick={addReviewer}>Add reviewer…</button>
+          </div>
+        </div>
+      )}
       <div className="prd-section"><h4>Description</h4><div className="prd-body">{p.body || 'No description provided.'}</div></div>
       {p.checks.length > 0 && (
         <div className="prd-section"><h4>Checks ({passed}/{p.checks.length} passed)</h4>

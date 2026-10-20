@@ -15,7 +15,7 @@ process.on('unhandledRejection', (err: any) => logError('backend', { message: er
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: ['error', 'warn'] });
-  app.enableCors({ origin: UI_ORIGINS, credentials: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'X-IDE-Token'] });
+  app.enableCors({ origin: UI_ORIGINS, credentials: true, methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], allowedHeaders: ['Content-Type', 'X-IDE-Token'] });
   app.useBodyParser('json', { limit: '20mb' });
   app.useGlobalFilters(new JsonErrorFilter());
   const express = app.getHttpAdapter().getInstance();
