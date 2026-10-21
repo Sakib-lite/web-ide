@@ -901,3 +901,30 @@ kbd {
 .tb-merging button:hover { background: var(--bg-hover); color: var(--text); }
 .tb-merging button:first-of-type:hover { color: #5fad65; }
 .tb-merging button:last-of-type:hover { color: #e0533d; }
+
+.upper-row { position: relative; }
+
+@media (max-width: 1100px) {
+  .tool-panel.left:not(.collapsed) { max-width: 240px; }
+  .tool-panel.right:not(.collapsed) { max-width: 340px; }
+}
+
+@media (max-width: 899px) {
+  .tool-panel.left:not(.collapsed),
+  .tool-panel.right:not(.collapsed) {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 60;
+    width: min(86vw, 340px) !important;
+    max-width: min(86vw, 340px);
+    box-shadow: 8px 0 24px rgba(0, 0, 0, .45);
+  }
+  .tool-panel.left:not(.collapsed) { left: 0; }
+  .tool-panel.right:not(.collapsed) { right: 0; box-shadow: -8px 0 24px rgba(0, 0, 0, .45); }
+  .tool-panel.left .tool-panel-inner,
+  .tool-panel.right .tool-panel-inner { width: 100%; }
+  .resizer-v { display: none; }
+  .editor-area { min-width: 0; }
+}
+
