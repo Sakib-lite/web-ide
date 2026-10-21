@@ -3,20 +3,26 @@ import { fsApi, symApi } from '@/lib/api';
 import { basename, dirname, escapeRegExp } from '@/lib/utils';
 import { enclosingClass } from './definitions';
 import { ensureModels } from './model-cache';
+import { runInTerminal } from '@/components/terminal/terminal-store';
 
 type Family = 'js' | 'php' | 'py';
 const LANGS = ['javascript', 'typescript', 'php', 'python'];
 const FAMILY: Record<string, Family> = { javascript: 'js', typescript: 'js', php: 'php', python: 'py' };
 let monaco: typeof Monaco;
 
-export function initIntellisense(m: typeof Monaco, _editor: Monaco.editor.IStandaloneCodeEditor) {
+export function initIntellisense(m: typeof Monaco, _editor: Monaco.editor.ICodeEditor) {
   monaco = m;
   monaco.languages.registerCompletionItemProvider(LANGS, { triggerCharacters: ['.', '>', ':', '\\', '/', "'", '"', '{', ' ', ','], provideCompletionItems: safe(provideCompletions, { suggestions: [] }) });
   monaco.languages.registerDocumentHighlightProvider(['php', 'python'], { provideDocumentHighlights: safe(provideHighlights, []) });
   monaco.languages.registerReferenceProvider(LANGS, { provideReferences: safe(provideReferences, []) });
   monaco.languages.registerRenameProvider(['php', 'python'], { provideRenameEdits: safe(provideRename, { edits: [] }), resolveRenameLocation: safe(resolveRename, null) });
   monaco.languages.registerCodeActionProvider(LANGS, { provideCodeActions: safe(provideCodeActions, { actions: [], dispose() {} }) });
-  monaco.languages.registerHoverProvider(['php', 'python'], { provideHover: safe(provideHover, null) });
+  monaco.languages.registerHoverProvider(LANGS, { provideHover: safe(provideHover, null) });
+  monaco.languages.registerHoverProvider('json', { provideHover: safe(provideNpmScriptHover, null) });
+  monaco.languages.registerSignatureHelpProvider(LANGS, { signatureHelpTriggerCharacters: ['(', ','], signatureHelpRetriggerCharacters: [','], provideSignatureHelp: safe(provideSignatureHelp, null) });
+  monaco.editor.registerCommand('webide.runNpmScript', (_accessor, name: string) => {
+    if (typeof name === 'string' && /^[\w:.-]+$/.test(name)) runInTerminal(`npm run ${name}`);
+  });
 }
 
 const safe = <A extends unknown[], R>(fn: (...a: A) => Promise<R> | R, fallback: R) => async (...a: A): Promise<R> => {
@@ -417,6 +423,75 @@ async function provideHover(model: Monaco.editor.ITextModel, position: Monaco.Po
   const sig = s.kind === 'method' || s.kind === 'function' ? `${s.name}${s.signature || '()'}` : s.name;
   const sep = famOf(model) === 'php' ? '::' : '.';
   return { range: new monaco.Range(position.lineNumber, w.startColumn, position.lineNumber, w.endColumn), contents: [{ value: `\`\`\`${model.getLanguageId()}\n${s.visibility ? s.visibility + ' ' : ''}${s.static ? 'static ' : ''}${s.kind} ${s.container ? s.container + sep : ''}${sig}\n\`\`\`` }, { value: `${s.fqn ? '`' + s.fqn + '` · ' : ''}${s.file}:${s.line}` }] };
+}
+
+function npmScriptsBlock(text: string): [number, number] | null {
+  const m = /"(?:scripts|scriptHooks)"\s*:\s*\{/.exec(text);
+  if (!m) return null;
+  let depth = 0;
+  for (let i = m.index + m[0].length - 1; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}') {
+      depth--;
+      if (!depth) return [m.index, i];
+    }
+  }
+  return null;
+}
+
+function provideNpmScriptHover(model: Monaco.editor.ITextModel, position: Monaco.Position): Monaco.languages.Hover | null {
+  if (basename(relOf(model)) !== 'package.json') return null;
+  const w = model.getWordAtPosition(position);
+  if (!w) return null;
+  const line = model.getLineContent(position.lineNumber);
+  if (!/"\s*$/.test(line.slice(0, w.startColumn - 1)) || !/^"\s*:/.test(line.slice(w.endColumn - 1))) return null;
+  const offset = model.getOffsetAt(position);
+  const block = npmScriptsBlock(model.getValue());
+  if (!block || offset < block[0] || offset > block[1]) return null;
+  const arg = encodeURIComponent(JSON.stringify(w.word));
+  const md = { value: `**npm run ${w.word}**\n\n[▶ Run task](command:webide.runNpmScript?${arg})`, isTrusted: true };
+  return { range: new monaco.Range(position.lineNumber, w.startColumn, position.lineNumber, w.endColumn), contents: [md] };
+}
+
+function splitParams(sig?: string): string[] {
+  const inner = (sig || '').trim().replace(/^\(/, '').replace(/\)$/, '');
+  if (!inner.trim()) return [];
+  const out: string[] = [];
+  let depth = 0, cur = '';
+  for (const ch of inner) {
+    if (ch === '(' || ch === '[' || ch === '{') depth++;
+    if (ch === ')' || ch === ']' || ch === '}') depth--;
+    if (ch === ',' && depth === 0) {
+      if (cur.trim()) out.push(cur.trim());
+      cur = '';
+      continue;
+    }
+    cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+
+async function provideSignatureHelp(model: Monaco.editor.ITextModel, position: Monaco.Position): Promise<Monaco.languages.SignatureHelpResult | null> {
+  const fam = famOf(model);
+  if (!fam) return null;
+  const before = model.getLineContent(position.lineNumber).slice(0, position.column - 1);
+  const m = /([A-Za-z_$][\w$]*)\s*\(([^()]*)$/.exec(before);
+  if (!m) return null;
+  const typed = m[2].trim() === '' ? 0 : m[2].split(',').length - 1;
+  const hits = (await symApi.search(m[1]).catch(() => [] as any[])).filter((s: any) => s.name === m[1] && (s.kind === 'function' || s.kind === 'method') && s.signature);
+  if (!hits.length) return null;
+  const sep = fam === 'php' ? '::' : '.';
+  const signatures = hits.slice(0, 5).map((s: any) => ({
+    label: `${s.container ? s.container + sep : ''}${s.name}${s.signature}`,
+    documentation: { value: `${s.fqn ? s.fqn + ' · ' : ''}${s.file}:${s.line}` },
+    parameters: splitParams(s.signature).map((p) => ({ label: p })),
+  }));
+  const first = splitParams(hits[0].signature);
+  return {
+    value: { signatures, activeSignature: 0, activeParameter: Math.max(0, Math.min(typed, Math.max(0, first.length - 1))) },
+    dispose: () => undefined,
+  };
 }
 
 export async function isOnDeclaration(model: Monaco.editor.ITextModel, position: Monaco.Position): Promise<boolean> {
