@@ -957,3 +957,20 @@ kbd {
   .sb-left span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
+@media (max-width: 700px) {
+  .tab { max-width: 150px; }
+  .empty-shortcuts { font-size: 11.5px; gap: 5px; }
+}
+
+.dialog { max-height: calc(100dvh - 40px); }
+.dlg-body { overflow: auto; min-height: 0; }
+.dialog footer { flex-wrap: wrap; }
+.anchored-popup { max-width: calc(100vw - 12px); }
+@media (max-width: 900px) {
+  .merge-dialog { height: 62vh; min-height: 260px; }
+}
+@media (max-height: 560px) {
+  .dialog { margin-top: 2vh; max-height: 94dvh; }
+  .merge-dialog { height: 70vh; min-height: 200px; }
+}
+
