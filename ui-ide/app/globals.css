@@ -181,7 +181,7 @@ kbd {
 .run-config { background: none; border: none; outline: none; color: var(--text); font-size: 12.5px; }
 .run-config option { background: var(--bg-panel); }
 
-.workbench { display: flex; min-height: 0; }
+.workbench { display: flex; min-height: 0; min-width: 0; }
 .stripe { width: var(--stripe-w); display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 6px 0; background: var(--bg-panel); border-right: 1px solid var(--border); }
 .stripe-top, .stripe-bottom { display: flex; flex-direction: column; gap: 4px; }
 .stripe-btn {
@@ -202,6 +202,8 @@ kbd {
   width: var(--left-w, 280px); border-right: 1px solid var(--border);
   transition: width var(--t-med) var(--ease), border-color var(--t-med);
 }
+.tool-panel.left:not(.collapsed) { min-width: 180px; }
+.tool-panel.right:not(.collapsed) { min-width: 240px; }
 .tool-panel.left.collapsed { width: 0 !important; border-right-color: transparent; }
 .tool-panel.bottom {
   height: var(--bottom-h, 260px); border-top: 1px solid var(--border);
@@ -214,8 +216,8 @@ kbd {
   opacity: 1; transform: translateX(0);
   transition: opacity var(--t-med) var(--ease), transform var(--t-med) var(--ease);
 }
-.tool-panel.left .tool-panel-inner { width: var(--left-w, 280px); min-width: 180px; }
-.tool-panel.bottom .tool-panel-inner { height: var(--bottom-h, 260px); min-height: 120px; }
+.tool-panel.left .tool-panel-inner { width: var(--left-w, 280px); min-width: 180px; max-width: 100%; }
+.tool-panel.bottom .tool-panel-inner { height: var(--bottom-h, 260px); min-height: 120px; max-height: 100%; }
 .tool-panel.left.collapsed .tool-panel-inner { opacity: 0; transform: translateX(-24px); }
 .tool-panel.bottom.collapsed .tool-panel-inner { opacity: 0; transform: translateY(24px); }
 .tool-view { display: none; flex: 1; flex-direction: column; min-height: 0; }
@@ -283,7 +285,7 @@ kbd {
 .ficon.folder .ico { width: 16px; height: 16px; }
 .ficon.folder.special { color: #6a9bd8; }
 
-.editor-area { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-main); }
+.editor-area { flex: 1; display: flex; flex-direction: column; min-width: clamp(120px, 18vw, 240px); background: var(--bg-main); position: relative; }
 .tabs { height: 36px; display: flex; align-items: stretch; overflow-x: auto; overflow-y: hidden; background: var(--bg-panel); border-bottom: 1px solid var(--border); scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab {
@@ -809,7 +811,7 @@ kbd {
 .stripe-btn svg { width: 16px; height: 16px; }
 .tool-panel.right { width: var(--right-w, 440px); border-left: 1px solid var(--border); transition: width var(--t-med) var(--ease), border-color var(--t-med); }
 .tool-panel.right.collapsed { width: 0 !important; border-left-color: transparent; }
-.tool-panel.right .tool-panel-inner { width: var(--right-w, 440px); min-width: 240px; right: 0; left: auto; }
+.tool-panel.right .tool-panel-inner { width: var(--right-w, 440px); min-width: 240px; max-width: 100%; right: 0; left: auto; }
 .tool-panel.right.collapsed .tool-panel-inner { opacity: 0; transform: translateX(24px); }
 .resizer-v.right { right: auto; left: -3px; }
 .ficon.py { background: #3b77b3; color: #ffd845; }

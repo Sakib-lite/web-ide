@@ -26,7 +26,7 @@ function LogToolbar() {
       </select>
       <select className="filter-select" value={filters.author} onChange={(e) => setFilter({ author: e.target.value })}>
         <option value="">User: All</option>
-        {authors.map((a) => <option key={a.email} value={a.email}>User: {a.name}</option>)}
+        {[...new Map(authors.map((a) => [a.email, a])).values()].map((a) => <option key={a.email} value={a.email}>User: {a.name}</option>)}
       </select>
       <select className="filter-select" value={filters.since} onChange={(e) => setFilter({ since: e.target.value })}>
         <option value="">Date: All</option>

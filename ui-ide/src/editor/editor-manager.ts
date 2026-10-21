@@ -311,12 +311,13 @@ class EditorManager {
   }
 
   async save(tab: Tab) {
-    if (tab.kind !== 'file' || tab.saving) return;
+    if (tab.kind !== 'file' || tab.saving || tab.model.isDisposed()) return;
     const version = tab.model.getAlternativeVersionId();
     if (version === tab.savedVersion) return;
     tab.saving = true;
     try {
       await fsApi.write(tab.path, tab.model.getValue());
+      if (tab.model.isDisposed()) return;
       tab.savedVersion = version;
       if (tab.model.getAlternativeVersionId() === version) tab.dirty = false;
       useStore.getState().setStatusMessage(`Saved ${basename(tab.path)}`);
@@ -328,7 +329,7 @@ class EditorManager {
       toast('Save failed', err.message, 'error');
     } finally {
       tab.saving = false;
-      if (tab.model.getAlternativeVersionId() !== tab.savedVersion) tab.save();
+      if (!tab.model.isDisposed() && tab.model.getAlternativeVersionId() !== tab.savedVersion) tab.save();
     }
   }
 

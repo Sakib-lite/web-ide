@@ -32,7 +32,13 @@ export class ProjectFS {
 
   async list(rel = ''): Promise<Entry[]> {
     const abs = this.resolve(rel);
-    const entries = await fs.readdir(abs, { withFileTypes: true });
+    let entries: import('node:fs').Dirent[];
+    try {
+      entries = await fs.readdir(abs, { withFileTypes: true });
+    } catch (err: any) {
+      if (err.code === 'ENOENT' || err.code === 'ENOTDIR') return [];
+      throw err;
+    }
     const out: Entry[] = [];
     for (const e of entries) {
       if (HIDDEN.has(e.name)) continue;
@@ -54,7 +60,12 @@ export class ProjectFS {
 
   async read(rel: string) {
     const abs = this.resolve(rel);
-    const stat = await fs.stat(abs);
+    let stat: import('node:fs').Stats;
+    try {
+      stat = await fs.stat(abs);
+    } catch {
+      fail('File not found: ' + rel, 404, 'NOT_FOUND');
+    }
     if (stat.size > 5 * 1024 * 1024) fail('File too large to open (> 5 MB)', 413);
     const buf = await fs.readFile(abs);
     if (buf.subarray(0, 8192).includes(0)) fail('Binary file', 415);
