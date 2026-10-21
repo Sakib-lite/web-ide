@@ -9,7 +9,7 @@ const browser = await chromium.launch({ executablePath: exe, headless: true });
 const page = await browser.newPage({ viewport: { width: 1600, height: 940 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
-page.on('console', (m) => m.type() === 'error' && !/favicon|404/.test(m.text()) && errors.push('console: ' + m.text()));
+page.on('console', (m) => m.type() === 'error' && !/favicon|404/.test(m.text()) && errors.push(`console: ${m.text()} ${m.location()?.url || ''}`));
 const results = [];
 const check = (name, ok, extra = '') => results.push(`${ok ? 'PASS' : 'FAIL'} ${name}${extra ? ' — ' + extra : ''}`);
 const text = (sel) => page.textContent(sel).then((t) => (t || '').trim()).catch(() => '');

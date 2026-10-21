@@ -155,8 +155,8 @@ export function BranchPopupHost() {
         <Group id="local" title="Local" forceOpen={!!q}>{locals.map((b) => <BranchRow key={b.name} b={b} current={b.name === data.current} indent="bp-indent" close={close} />)}</Group>
         <Group id="remote" title="Remote" forceOpen={!!q}>
           {[...remotes.entries()].flatMap(([name, list]) => [
-            <div key={name} className="bp-item bp-indent" style={{ color: 'var(--text-secondary)' }}><Icon name="folder" /><span>{name}</span></div>,
-            ...list.sort((a, b) => a.name.localeCompare(b.name)).map((b) => <BranchRow key={b.name} b={b} remote indent="bp-indent2" close={close} />),
+            <div key={`remote:${name}`} className="bp-item bp-indent" style={{ color: 'var(--text-secondary)' }}><Icon name="folder" /><span>{name}</span></div>,
+            ...list.sort((a, b) => a.name.localeCompare(b.name)).map((b) => <BranchRow key={`ref:${b.name}`} b={b} remote indent="bp-indent2" close={close} />),
           ])}
         </Group>
         <Group id="tags" title="Tags" forceOpen={!!q}>
