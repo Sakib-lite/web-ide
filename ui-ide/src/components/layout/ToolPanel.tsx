@@ -64,11 +64,12 @@ function relayoutToolPanels() {
     p.style.setProperty(cfg.cssVar, size + 'px');
     if (localStorage.getItem(cfg.key) !== String(size)) localStorage.setItem(cfg.key, String(size));
   };
+  apply(b, SIZE.bottom, clampNum(current(b, SIZE.bottom), PANEL_MIN.bottom, innerHeight * 0.8));
+  if (innerWidth < 900) return;
   const avail = Math.max(PANEL_MIN.left + PANEL_MIN.right, innerWidth - STRIPES_W - EDITOR_MIN);
   const left = clampNum(current(l, SIZE.left), PANEL_MIN.left, avail - (isOpen(r) ? PANEL_MIN.right : 0));
   apply(l, SIZE.left, left);
   apply(r, SIZE.right, clampNum(current(r, SIZE.right), PANEL_MIN.right, avail - (isOpen(l) ? left : 0)));
-  apply(b, SIZE.bottom, clampNum(current(b, SIZE.bottom), PANEL_MIN.bottom, innerHeight * 0.8));
 }
 
 function useResizer(side: Side, panel: React.RefObject<HTMLElement | null>) {
