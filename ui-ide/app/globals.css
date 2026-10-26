@@ -928,3 +928,32 @@ kbd {
   .editor-area { min-width: 0; }
 }
 
+.titlebar { overflow: hidden; }
+.tb-left { min-width: 0; }
+.tb-left .tb-project span, .tb-left .tb-branch span:not(.branch-sync) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 1180px) {
+  .vcs-quick .tb-icon[title^='Update'] { display: none; }
+}
+
+@media (max-width: 1020px) {
+  .run-widget { display: none; }
+  .sb-item[title='Symbol index'] { display: none; }
+}
+
+@media (max-width: 860px) {
+  .vcs-quick { display: none; }
+  .tb-right .tb-icon[title^='Find in Files'] { display: none; }
+  .sb-eol { display: none; }
+}
+
+@media (max-width: 620px) {
+  .tb-project > span:not(.project-badge) { display: none; }
+  .tb-branch > span:not(.branch-sync) { display: none; }
+  .tb-branch .branch-sync { display: none; }
+  .sb-item[title='GitHub account'] span { display: none; }
+  .sb-indent { display: none; }
+  .sb-item { padding: 0 5px; }
+  .sb-left span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+

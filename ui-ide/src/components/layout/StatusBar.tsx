@@ -27,10 +27,10 @@ export function StatusBar() {
       <div className="sb-right">
         <span className={`sb-item${index.ready ? ' ready' : ''}`} title="Symbol index">{index.ready ? (index.stats ? `${index.stats.symbols} symbols` : 'Indexed') : 'Indexing…'}</span>
         {usages && <span className="sb-item" title="Usages of the identifier at the caret in this file">{usages}</span>}
-        <span className="sb-item" title="Go to line" onClick={gotoLine}>{position}</span>
-        <span className="sb-item">{eol}</span>
+        <span className="sb-item sb-pos" title="Go to line" onClick={gotoLine}>{position}</span>
+        <span className="sb-item sb-eol">{eol}</span>
         <span className="sb-item">UTF-8</span>
-        <span className="sb-item">{indent}</span>
+        <span className="sb-item sb-indent">{indent}</span>
         <span className="sb-item" title="GitHub account" onClick={() => openSettingsDialog()}><Icon name="github" /><span>{github.user || 'Log in to GitHub'}</span></span>
         <span className="sb-item" onClick={(e) => openBranchPopup(e.currentTarget)}><Icon name="branch" /><span>{branchLabel}</span></span>
       </div>
