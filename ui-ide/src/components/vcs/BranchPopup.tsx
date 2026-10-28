@@ -140,7 +140,7 @@ export function BranchPopupHost() {
   const remotes = new Map<string, Branch[]>();
   for (const b of data.remote) if (match(b.name)) (remotes.get(b.remote!) || remotes.set(b.remote!, []).get(b.remote!))!.push(b);
   return (
-    <div id="branch-popup" className="anchored-popup" style={{ left: Math.min(r.left, innerWidth - 520), top: r.bottom + 6 }}>
+    <div id="branch-popup" className="anchored-popup" style={{ left: Math.max(4, Math.min(r.left, innerWidth - Math.min(520, innerWidth - 12) - 6)), top: r.bottom + 6 }}>
       <div className="search-field bp-search"><Icon name="search" /><input ref={input} value={query} placeholder="Search for branches and actions" onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (document.querySelector<HTMLElement>('#branch-popup .bp-item')?.click())} /></div>
       <div className="bp-body">
         {operation && (
