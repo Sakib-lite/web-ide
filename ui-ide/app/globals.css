@@ -974,3 +974,11 @@ kbd {
   .merge-dialog { height: 70vh; min-height: 200px; }
 }
 
+@media (max-width: 899px) {
+  .editor-host.with-preview { flex-direction: column; }
+  .editor-host.with-preview > #editor { flex: 1 1 45%; min-height: 0; }
+  .mdv { flex: 1 1 55%; min-height: 0; border-left: none; border-top: 1px solid var(--border); }
+  .mdv-outline { display: none; }
+  .md-mode-switch { top: 41px; }
+}
+
