@@ -982,3 +982,10 @@ kbd {
   .md-mode-switch { top: 41px; }
 }
 
+@media (max-width: 760px) {
+  .welcome-side { display: none; }
+  .settings-layout { flex-direction: column; min-height: 0; }
+  .settings-nav { flex-direction: row; width: auto; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); padding: 0 0 8px; flex-shrink: 0; }
+  .settings-nav button { white-space: nowrap; }
+  .km-list { max-height: 40vh; }
+}
