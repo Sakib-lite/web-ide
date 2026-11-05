@@ -989,3 +989,27 @@ kbd {
   .settings-nav button { white-space: nowrap; }
   .km-list { max-height: 40vh; }
 }
+
+/* JetBrains-style merge gutter chips */
+.md-chip-pill { display: inline-flex; align-items: center; gap: 3px; padding: 2px; margin: 1px 0 3px 2px; background: #26282d; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,.35); z-index: 40; }
+.md-chip { display: flex; align-items: center; justify-content: center; width: 30px; height: 20px; padding: 0; border-radius: 5px; border: none; cursor: pointer; }
+.md-chip svg { width: 16px; height: 11px; display: block; }
+.md-chip.blue { background: #4d7fd0; color: #fff; }
+.md-chip.orange { background: #c97e3d; color: #fff; }
+.md-chip.gray { background: #565a62; color: #d5d7dc; }
+.md-chip.blue:hover { background: #5f8fe0; }
+.md-chip.orange:hover { background: #dd905a; }
+.md-chip.gray:hover { background: #676b74; }
+.md-count { font-size: 11px; color: var(--text-secondary); white-space: nowrap; padding: 0 2px; }
+.md-magic svg { flex: none; }
+.md-magic b { font-weight: 600; color: #7aa5f8; }
+
+/* Merge dialog toolbar (JetBrains layout: nav, counter, wand, apply-all sides) */
+.md-toolbar { display: flex; align-items: center; gap: 5px; padding: 0 2px 6px; }
+.md-toolbar > button { display: flex; align-items: center; justify-content: center; min-width: 24px; height: 22px; padding: 0 5px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg); color: var(--text-muted); font-size: 13px; cursor: pointer; }
+.md-toolbar > button:hover { background: var(--bg-hover); color: var(--text); }
+.md-toolbar .md-magic { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; font-size: 11.5px; }
+
+/* Gutter chip stacks (JetBrains: icons live in the line-number margin) */
+.md-gutter-overlay { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 30; }
+.md-gutter-stack { position: absolute; display: flex; flex-direction: row; gap: 2px; pointer-events: auto; }

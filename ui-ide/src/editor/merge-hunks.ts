@@ -1,12 +1,29 @@
 
+/**
+ * Three-way hunk model for the merge dialog — mirrors IntelliJ's merge model
+ * (ThreesideMergeHighlighters/MergeThreesideViewer): every change has a LEFT
+ * and/or RIGHT part, and EACH PART is resolved independently (apply = keep its
+ * lines in the result, ignore = drop them). A conflict is resolved by applying
+ * one or both of its parts.
+ */
+
 export interface SideChange {
   side: 'left' | 'right';
-  aStart: number;
+  aStart: number; // base lines [aStart..aEnd] replaced (insert: aStart = aEnd + 1)
   aEnd: number;
-  bStart: number;
+  bStart: number; // the side's own line range [bStart..bEnd] with the new content
   bEnd: number;
   lines: string[];
   conflict: boolean;
+  hunkId?: number; // the Result hunk this change belongs to (absent for pure deletions)
+}
+
+export interface Part {
+  start: number;
+  end: number;
+  side: 'left' | 'right';
+  lines: string[];
+  state: 'pending' | 'applied' | 'ignored';
 }
 
 export interface Hunk {
@@ -14,8 +31,9 @@ export interface Hunk {
   conflict: boolean;
   start: number;
   end: number;
-  parts: { start: number; end: number; side: 'left' | 'right' }[];
-  state: 'pending' | 'accepted' | 'dismissed';
+  parts: Part[];
+  /** Base lines this hunk replaced (for ignore-both / revert). */
+  baseLines: string[];
 }
 
 export interface MergeModel {
@@ -25,10 +43,13 @@ export interface MergeModel {
   rightChanges: SideChange[];
 }
 
+export const isHunkPending = (h: Hunk) => h.parts.some((p) => p.state === 'pending');
+
 export function diffRegions(a: string[], b: string[]): { aStart: number; aEnd: number; bStart: number; bEnd: number }[] {
   const n = a.length;
   const m = b.length;
   if (n * m > 9_000_000) {
+    // Guard for huge files: one whole-file change rather than an O(n·m) blowup.
     return n || m ? [{ aStart: 1, aEnd: n, bStart: 1, bEnd: m }] : [];
   }
   const w = m + 1;
@@ -49,6 +70,7 @@ export function diffRegions(a: string[], b: string[]): { aStart: number; aEnd: n
     }
     const aS = i;
     const bS = j;
+    // Extend both sides until they realign on a common line (one change region).
     while (i < n && j < m && a[i] !== b[j]) {
       if (dp[(i + 1) * w + j] >= dp[i * w + j + 1]) i++;
       else j++;
@@ -100,29 +122,34 @@ export function buildMergeModel(base: string[], ours: string[], theirs: string[]
     const consumeTo = Math.max(...cluster.map((c) => c.aEnd));
     const before = Math.min(...cluster.map((c) => (c.aStart > c.aEnd ? c.aEnd : c.aStart - 1)));
     for (let l = emitted + 1; l <= Math.min(before, base.length); l++) resultLines.push(base[l - 1]);
-    const parts: Hunk['parts'] = [];
+    const parts: Part[] = [];
+    const pushPart = (side: 'left' | 'right', lines: string[]) => {
+      if (!lines.length) return;
+      parts.push({ start: resultLines.length + 1, end: resultLines.length + lines.length, side, lines, state: 'pending' });
+      resultLines.push(...lines);
+    };
     if (conflict) {
-      const ourLines = cluster.filter((c) => c.side === 'left').flatMap((c) => c.lines);
-      const theirLines = cluster.filter((c) => c.side === 'right').flatMap((c) => c.lines);
-      if (ourLines.length) parts.push({ start: resultLines.length + 1, end: resultLines.length + ourLines.length, side: 'left' });
-      resultLines.push(...ourLines);
-      if (theirLines.length) parts.push({ start: resultLines.length + 1, end: resultLines.length + theirLines.length, side: 'right' });
-      resultLines.push(...theirLines);
+      pushPart('left', cluster.filter((c) => c.side === 'left').flatMap((c) => c.lines));
+      pushPart('right', cluster.filter((c) => c.side === 'right').flatMap((c) => c.lines));
     } else {
-      const c = cluster[0];
-      if (c.lines.length) parts.push({ start: resultLines.length + 1, end: resultLines.length + c.lines.length, side: c.side });
-      resultLines.push(...c.lines);
+      pushPart(cluster[0].side, cluster[0].lines);
     }
     const start = resultLines.length + 1 - (parts.reduce((s, p) => s + p.end - p.start + 1, 0));
     const end = resultLines.length;
     emitted = Math.max(emitted, before, consumeTo);
     for (const c of cluster) c.conflict = conflict;
-    if (parts.length) hunks.push({ id: ++id, conflict, start, end, parts, state: 'pending' });
+    if (parts.length) {
+      const id2 = ++id;
+      for (const c of cluster) c.hunkId = id2;
+      hunks.push({ id: id2, conflict, start, end, parts, baseLines: base.slice(before, consumeTo) });
+    }
+    // A cluster can be pure-deletion (parts empty): base lines dropped silently.
   }
   for (let l = emitted + 1; l <= base.length; l++) resultLines.push(base[l - 1]);
   return { resultLines, hunks, leftChanges, rightChanges };
 }
 
+/** Shift hunk positions after `delta` lines at `atLine` (negative delta = insertion). */
 export function shiftHunks(hunks: Hunk[], atLine: number, deletedLines: number, exceptId?: number) {
   for (const h of hunks) {
     if (h.id === exceptId) continue;
