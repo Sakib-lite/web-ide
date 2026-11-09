@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { SettingsService } from './settings.service';
+import { SettingsService, AiSettings } from './settings.service';
 import { GitHubClient } from '../github/github-client';
 import { fail } from '../common/errors';
 
@@ -17,11 +17,12 @@ export class SettingsController {
   }
 
   @Post()
-  async update(@Body() body: { githubToken?: string; clearGithubToken?: boolean }) {
-    const patch: Record<string, string> = {};
+  async update(@Body() body: { githubToken?: string; clearGithubToken?: boolean; ai?: AiSettings }) {
+    const patch: Record<string, unknown> = {};
     if (typeof body.githubToken === 'string' && !body.githubToken.includes('*')) patch.githubToken = body.githubToken.trim();
     if (body.clearGithubToken) Object.assign(patch, { githubToken: '', githubUser: '' });
     let s = await this.settings.update(patch);
+    if (body.ai) s = await this.settings.saveAi(body.ai);
     if (patch.githubToken) s = await this.verifyToken();
     return this.settings.toPublic(s);
   }

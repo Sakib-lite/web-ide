@@ -10,6 +10,7 @@ import { openSettingsDialog } from '@/components/github/SettingsDialog';
 import { createNode } from '@/components/project/tree-actions';
 import { openRecentFiles } from '@/lib/actions';
 import { cycleMdMode } from '@/components/markdown/MarkdownPreview';
+import { useAiStore } from '@/components/ai/ai-store';
 import { isDialogOpen } from '@/components/ui/dialogs';
 
 const TOOL_KEYS: Record<string, string> = { Digit1: 'project', Digit0: 'commit', Digit7: 'structure', Digit9: 'git', Digit3: 'find' };
@@ -53,6 +54,7 @@ export function useShortcuts() {
         if (e.code === 'KeyA') return handle(() => openSearchEverywhere('actions'));
         if (e.code === 'KeyK') return handle(() => pushDialog());
         if (e.code === 'KeyC' && toolDefs.some((d) => d.id === 'claude-code')) return handle(() => toggleTool('claude-code'));
+        if (e.code === 'KeyI') return handle(() => { if (!inEditor) useAiStore.getState().runAnalysis(); else toggleTool('ai'); });
         if (e.code === 'F12') return handle(hideAllTools);
         if (e.code === 'BracketLeft') return handle(() => editorManager.nextTab(-1));
         if (e.code === 'BracketRight') return handle(() => editorManager.nextTab(1));

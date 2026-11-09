@@ -10,6 +10,7 @@ import { SymbolsController } from './symbols/symbols.controller';
 import { GithubController } from './github/github.controller';
 import { CloneService } from './github/clone.service';
 import { AiController } from './ai/ai.controller';
+import { AiOpenaiService } from './ai/ai-openai.service';
 import { PluginHost } from './plugins/plugin-host';
 import { PluginsController } from './plugins/plugins.controller';
 import { LogsController } from './logs/logs.controller';
@@ -18,6 +19,6 @@ import { HistoryController } from './history/history.controller';
 
 @Module({
   controllers: [SettingsController, ProjectsController, FsController, GitController, ChangelistsController, SymbolsController, GithubController, AiController, PluginsController, LogsController, HistoryController],
-  providers: [SettingsService, ProjectsService, CloneService, PluginHost, HistoryService],
+  providers: [SettingsService, ProjectsService, CloneService, PluginHost, HistoryService, AiOpenaiService],
 })
 export class AppModule {}

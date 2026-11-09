@@ -5,12 +5,13 @@ import { isOnDeclaration } from './intellisense';
 import { useStore } from '@/lib/store';
 import { useCommitStore } from '@/components/git/commit-store';
 import { changedPaths } from '@/components/git/git-status';
+import { useAiStore } from '@/components/ai/ai-store';
 
 export function registerKeymap(monaco: typeof Monaco, manager: typeof Manager) {
   const { editor, diffEditor } = manager;
   const M = monaco.KeyMod, C = monaco.KeyCode;
-  const act = (id: string, label: string, keys: number[], run: string | ((ed: Monaco.editor.ICodeEditor) => void)) =>
-    editor.addAction({ id: 'jb.' + id, label, keybindings: keys, run: typeof run === 'string' ? (ed) => ed.trigger('jb', run, null) : run });
+  const act = (id: string, label: string, keys: number[], run: string | ((ed: Monaco.editor.ICodeEditor) => void), contextMenuGroupId?: string) =>
+    editor.addAction({ id: 'jb.' + id, label, keybindings: keys, contextMenuGroupId, run: typeof run === 'string' ? (ed) => ed.trigger('jb', run, null) : run });
 
   act('goto', 'Go to Declaration or Usages', [M.CtrlCmd | C.KeyB, M.CtrlCmd | M.Alt | C.KeyB], async (ed) => {
     if (await isOnDeclaration(ed.getModel()!, ed.getPosition()!)) return ed.trigger('jb', 'editor.action.referenceSearch.trigger', null);
@@ -63,6 +64,7 @@ export function registerKeymap(monaco: typeof Monaco, manager: typeof Manager) {
   act('fold', 'Collapse', [M.CtrlCmd | M.Alt | C.Minus], 'editor.fold');
   act('unfold', 'Expand', [M.CtrlCmd | M.Alt | C.Equal], 'editor.unfold');
   act('completeStatement', 'Complete Current Statement', [M.CtrlCmd | M.Shift | C.Enter], (ed) => completeStatement(monaco, ed));
+  act('aiAnalyze', 'AI Analyze Selection', [M.CtrlCmd | M.Shift | C.KeyI], () => useAiStore.getState().runAnalysis(), 'navigation');
 
   diffEditor.addAction({ id: 'jb.diff.next', label: 'Next Difference', keybindings: [C.F7], run: () => diffEditor.goToDiff('next') });
   diffEditor.addAction({ id: 'jb.diff.prev', label: 'Previous Difference', keybindings: [M.Shift | C.F7], run: () => diffEditor.goToDiff('previous') });

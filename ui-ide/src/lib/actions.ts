@@ -94,6 +94,8 @@ export function ideActions(): IdeAction[] {
     { label: 'Project Tool Window', key: '⌘1', run: () => toggleTool('project') },
     { label: 'Structure Tool Window', key: '⌘7', run: () => toggleTool('structure') },
     { label: 'Run', run: runSelectedConfig },
+    { label: 'AI Analyze Selection', key: '⌘⇧I', run: () => import('@/components/ai/ai-store').then((m) => m.useAiStore.getState().runAnalysis()) },
+    { label: 'AI Assistant Tool Window', run: () => toggleTool('ai') },
     { label: 'Settings…', key: '⌘,', run: () => openSettingsDialog() },
     { label: 'Plugins…', run: () => openPluginsDialog() },
     { label: 'Increase Font Size', run: () => editorManager.changeFontSize(1) },

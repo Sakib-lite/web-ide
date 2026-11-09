@@ -11,6 +11,7 @@ import { StructurePanel } from '@/components/structure/StructurePanel';
 import { TerminalPanel } from '@/components/terminal/TerminalPanel';
 import { GitLogPanel } from '@/components/gitlog/GitLogPanel';
 import { FindPanel } from '@/components/search/FindPanel';
+import { AiPanel } from '@/components/ai/AiPanel';
 import { PluginToolView } from '@/plugins/PluginToolView';
 
 const SIZE: Record<Side, { key: string; cssVar: string; def: number; axis: 'x' | 'y'; dir: 1 | -1 }> = {
@@ -27,6 +28,7 @@ const BUILTIN: Record<string, () => ReactNode> = {
   terminal: () => <TerminalPanel />,
   git: () => <GitLogPanel />,
   find: () => <FindPanel />,
+  ai: () => <AiPanel />,
 };
 
 export function ToolHeader({ id, title, children }: { id: string; title: ReactNode; children?: ReactNode }) {

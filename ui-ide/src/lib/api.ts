@@ -96,6 +96,50 @@ export const gitApi = {
   config: () => api<{ name: string; email: string }>('/api/git/config'),
 };
 
+export const aiApi = {
+  stream: async (path: string, body: Record<string, unknown>, onDelta: (text: string) => void): Promise<string> => {
+    const root = useStore.getState().project?.root;
+    const url = new URL(API_BASE + path);
+    if (root) url.searchParams.set('root', root);
+    const res = await fetch(url, { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ root, ...body }) });
+    if (!res.ok || !res.body) {
+      const data = await res.json().catch(() => ({}));
+      throw new ApiError(data.error || res.statusText, res.status, data.code);
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '', full = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const events = buf.split('\n\n');
+      buf = events.pop() || '';
+      for (const event of events) {
+        for (const line of event.split('\n')) {
+          if (!line.startsWith('data:')) continue;
+          const data = line.slice(5).trim();
+          if (!data || data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.error) throw new ApiError(parsed.error, 200);
+            if (parsed.delta) {
+              full += parsed.delta;
+              onDelta(parsed.delta);
+            }
+          } catch (err) {
+            if (err instanceof ApiError) throw err;
+          }
+        }
+      }
+    }
+    return full;
+  },
+  analyze: (body: { path: string; content: string; selection: string; selectionStartLine: number; selectionEndLine: number; language: string }, onDelta: (t: string) => void) => aiApi.stream('/api/ai/analyze', body, onDelta),
+  chat: (messages: { role: string; content: string }[], onDelta: (t: string) => void) => aiApi.stream('/api/ai/chat', { messages }, onDelta),
+  diff: (body: { path: string; language: string; before: string; after: string; scope: 'hunk' | 'file' }, onDelta: (t: string) => void) => aiApi.stream('/api/ai/diff', body, onDelta),
+};
+
 export const symApi = {
   status: () => api('/api/symbols/status'),
   lookup: (params: Record<string, string | undefined>) => api('/api/symbols/lookup', { query: params }),

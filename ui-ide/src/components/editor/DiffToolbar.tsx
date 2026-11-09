@@ -5,6 +5,8 @@ import { useStore } from '@/lib/store';
 import { editorManager } from '@/editor/editor-manager';
 import { Icon } from '@/components/ui/Icon';
 import { on } from '@/lib/bus';
+import { showContextMenu } from '@/components/ui/ContextMenu';
+import { useAiStore } from '@/components/ai/ai-store';
 
 export function DiffToolbar() {
   const settings = useStore((s) => s.settings);
@@ -28,12 +30,19 @@ export function DiffToolbar() {
     editorManager.openFile(tab.path, { line: pos?.lineNumber, col: pos?.column, preview: false });
   };
   if (!tab) return null;
+  const askAi = (e: React.MouseEvent) => {
+    showContextMenu(e.clientX, e.clientY, [
+      { label: 'AI: Explain this change (at cursor)', action: () => useAiStore.getState().runDiff('hunk') },
+      { label: 'AI: Explain all changes in this file', action: () => useAiStore.getState().runDiff('file') },
+    ]);
+  };
   return (
     <>
       <div className="diff-toolbar">
         <button className="tb-icon sm" title="Previous Difference (⇧F7)" onClick={() => editorManager.diffEditor.goToDiff('previous')}><Icon name="up" /></button>
         <button className="tb-icon sm" title="Next Difference (F7)" onClick={() => editorManager.diffEditor.goToDiff('next')}><Icon name="down" /></button>
         <button className="tb-icon sm" title="Jump to Source (F4)" onClick={jumpToSource}><Icon name="edit" /></button>
+        <button className="tb-icon sm" title="Ask AI about changes" onClick={askAi}><Icon name="spark" /></button>
         <span className="toolbar-sep" />
         <select className="filter-select" value={settings.diffSideBySide ? 'side' : 'unified'} onChange={(e) => update({ diffSideBySide: e.target.value === 'side' })}>
           <option value="side">Side-by-side viewer</option>

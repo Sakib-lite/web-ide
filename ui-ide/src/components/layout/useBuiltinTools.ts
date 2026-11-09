@@ -9,6 +9,7 @@ const BUILTIN_TOOLS = [
   { id: 'terminal', side: 'bottom', title: 'Terminal', icon: 'terminal', shortcut: '⌥F12' },
   { id: 'git', side: 'bottom', title: 'Git', icon: 'git', shortcut: '⌘9' },
   { id: 'find', side: 'bottom', title: 'Find', icon: 'find-files', shortcut: '⌘3' },
+  { id: 'ai', side: 'right', title: 'AI Assistant', icon: 'spark', shortcut: '⌘⇧I' },
 ] as const;
 
 export function useBuiltinTools() {

@@ -119,6 +119,7 @@ export const KEYMAP_GROUPS: KeymapGroup[] = [
       { keys: ['⌥F12'], label: 'Terminal' },
       { keys: ['⌘⇧F12'], label: 'Hide All Tool Windows' },
       { keys: ['⌘⇧C'], label: 'Claude Code (plugin)' },
+      { keys: ['⌘⇧I'], label: 'AI Assistant / Analyze Selection' },
     ],
   },
 ];
