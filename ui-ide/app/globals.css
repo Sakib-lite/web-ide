@@ -46,6 +46,7 @@
 
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
+nextjs-portal { user-select: text; -webkit-user-select: text; }
 body {
   background: var(--bg-main);
   color: var(--text);
