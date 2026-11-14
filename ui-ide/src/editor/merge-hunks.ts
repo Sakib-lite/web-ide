@@ -1,21 +1,14 @@
 
-/**
- * Three-way hunk model for the merge dialog — mirrors IntelliJ's merge model
- * (ThreesideMergeHighlighters/MergeThreesideViewer): every change has a LEFT
- * and/or RIGHT part, and EACH PART is resolved independently (apply = keep its
- * lines in the result, ignore = drop them). A conflict is resolved by applying
- * one or both of its parts.
- */
 
 export interface SideChange {
   side: 'left' | 'right';
-  aStart: number; // base lines [aStart..aEnd] replaced (insert: aStart = aEnd + 1)
+  aStart: number;
   aEnd: number;
-  bStart: number; // the side's own line range [bStart..bEnd] with the new content
+  bStart: number;
   bEnd: number;
   lines: string[];
   conflict: boolean;
-  hunkId?: number; // the Result hunk this change belongs to (absent for pure deletions)
+  hunkId?: number;
 }
 
 export interface Part {
@@ -32,7 +25,6 @@ export interface Hunk {
   start: number;
   end: number;
   parts: Part[];
-  /** Base lines this hunk replaced (for ignore-both / revert). */
   baseLines: string[];
 }
 
@@ -49,7 +41,6 @@ export function diffRegions(a: string[], b: string[]): { aStart: number; aEnd: n
   const n = a.length;
   const m = b.length;
   if (n * m > 9_000_000) {
-    // Guard for huge files: one whole-file change rather than an O(n·m) blowup.
     return n || m ? [{ aStart: 1, aEnd: n, bStart: 1, bEnd: m }] : [];
   }
   const w = m + 1;
@@ -70,7 +61,6 @@ export function diffRegions(a: string[], b: string[]): { aStart: number; aEnd: n
     }
     const aS = i;
     const bS = j;
-    // Extend both sides until they realign on a common line (one change region).
     while (i < n && j < m && a[i] !== b[j]) {
       if (dp[(i + 1) * w + j] >= dp[i * w + j + 1]) i++;
       else j++;
@@ -143,13 +133,11 @@ export function buildMergeModel(base: string[], ours: string[], theirs: string[]
       for (const c of cluster) c.hunkId = id2;
       hunks.push({ id: id2, conflict, start, end, parts, baseLines: base.slice(before, consumeTo) });
     }
-    // A cluster can be pure-deletion (parts empty): base lines dropped silently.
   }
   for (let l = emitted + 1; l <= base.length; l++) resultLines.push(base[l - 1]);
   return { resultLines, hunks, leftChanges, rightChanges };
 }
 
-/** Shift hunk positions after `delta` lines at `atLine` (negative delta = insertion). */
 export function shiftHunks(hunks: Hunk[], atLine: number, deletedLines: number, exceptId?: number) {
   for (const h of hunks) {
     if (h.id === exceptId) continue;

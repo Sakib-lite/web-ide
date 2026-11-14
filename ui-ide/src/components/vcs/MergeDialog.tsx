@@ -29,10 +29,6 @@ async function fetchMergeState(): Promise<MergeState | null> {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Conflicts list — JetBrains' first dialog: file table + quick resolve */
-/* ------------------------------------------------------------------ */
-
 function ConflictsListView({ close }: { close: () => void }) {
   const [state, setState] = useState<MergeState | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -66,7 +62,7 @@ function ConflictsListView({ close }: { close: () => void }) {
   };
   const merge = () => {
     if (!sel) return;
-    close(); // the 3-pane replaces the list, JetBrains-style
+    close();
     openMergeRevisions(sel.path);
   };
   return (
@@ -108,11 +104,6 @@ function ConflictsListView({ close }: { close: () => void }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Merge revisions — IntelliJ's per-part model: every side of a change  */
-/* is applied/ignored independently (model.resolveChange/ignoreChange). */
-/* ------------------------------------------------------------------ */
-
 interface MergeData {
   base: string | null;
   ours: string | null;
@@ -142,11 +133,6 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
   const rightDecos = useRef<string[]>([]);
   const gutters = useRef<{ midLeft?: GutterChips; midRight?: GutterChips }>({});
   const applying = useRef(false);
-  /**
-   * Ctrl+Z history: Monaco's own undo only restores text, not the per-part
-   * model — every merge action snapshots (hunks + text) so undo/redo can
-   * restore both together, like the IntelliJ merge dialog.
-   */
   const undoStack = useRef<{ hunks: string; text: string }[]>([]);
   const redoStack = useRef<{ hunks: string; text: string }[]>([]);
   const [, forceHistory] = useReducer((x: number) => x + 1, 0);
@@ -161,15 +147,22 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
 
   const restore = (snap: { hunks: string; text: string }) => {
     const mid = editors.current?.mid;
-    if (!mid || !model_.current) return;
+    const model = mid?.getModel();
+    if (!mid || !model || !model_.current) return;
     model_.current.hunks = JSON.parse(snap.hunks);
     applying.current = true;
     try {
-      mid.getModel().setValue(snap.text);
+      model.setValue(snap.text);
     } finally {
       applying.current = false;
     }
+    setManual(false);
     paint();
+  };
+
+  const act = (fn: () => void) => {
+    pushSnapshot();
+    fn();
   };
 
   const undo = () => {
@@ -207,7 +200,6 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
     for (const g of Object.values(gutters.current)) g?.clear();
   };
 
-  /** JetBrains-style broad arrow chips (SVG glyphs, wide rounded buttons). */
   const ICONS: Record<string, string> = {
     '»': '<svg viewBox="0 0 18 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.5L9 6l-5 4.5"/><path d="M10 1.5L15 6l-5 4.5"/></svg>',
     '«': '<svg viewBox="0 0 18 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 1.5L9 6l5 4.5"/><path d="M8 1.5L3 6l5 4.5"/></svg>',
@@ -258,30 +250,25 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
     for (const c of mm.rightChanges) rightDs.push(mkDeco(monaco, c.bStart, Math.max(c.bStart, c.bEnd), c.conflict ? 'mc-side-cf' : 'mc-side-ok', c.conflict ? '#e0873d' : '#548af7'));
     if (right?.getModel()) rightDecos.current = right.getModel()!.deltaDecorations(rightDecos.current, rightDs);
 
-    // JetBrains layout: BOTH icon columns flank the Result pane — left-side
-    // changes get »/✕ in the Result's LEFT gutter, right-side changes get
-    // «/✕ in its RIGHT gutter. The two side panes show colors only.
     for (const h of mm.hunks) {
       for (const p of h.parts) {
         const tone = h.conflict ? 'orange' : 'blue';
-        const applyChip = chip(p.side === 'left' ? '»' : '«', `Apply changes from the ${p.side} side${h.conflict ? ' (the other side stays for you to decide)' : ''}`, () => applyPart(h, p), tone);
-        const cluster = p.side === 'left' ? [applyChip, chip('✕', `Ignore changes from the left side`, () => ignorePart(h, p), 'gray')] : [chip('✕', `Ignore changes from the right side`, () => ignorePart(h, p), 'gray'), applyChip];
+        const applyChip = chip(p.side === 'left' ? '»' : '«', `Apply changes from the ${p.side} side${h.conflict ? ' (the other side stays for you to decide)' : ''}`, () => act(() => applyPart(h, p)), tone);
+        const cluster = p.side === 'left' ? [applyChip, chip('✕', `Ignore changes from the left side`, () => act(() => ignorePart(h, p)), 'gray')] : [chip('✕', `Ignore changes from the right side`, () => act(() => ignorePart(h, p)), 'gray'), applyChip];
         if (p.state === 'pending') {
           (p.side === 'left' ? gutters.current.midLeft : gutters.current.midRight)?.add(p.start, cluster);
         } else {
-          // Applied → revert ✕ in the same gutter.
-          (p.side === 'left' ? gutters.current.midLeft : gutters.current.midRight)?.add(p.start, [chip('✕', 'Revert conflict resolution', () => {
+          (p.side === 'left' ? gutters.current.midLeft : gutters.current.midRight)?.add(p.start, [chip('✕', 'Revert conflict resolution', () => act(() => {
             if (isHunkPending(h)) p.state = 'pending';
             else resetHunk(h);
             paint();
-          }, 'gray')]);
+          }), 'gray')]);
         }
       }
     }
     force();
   };
 
-  /** Delete Result lines [s..e] newline-safely and shift other hunks. */
   const deleteLines = (s: number, e: number, exceptId?: number) => {
     const mid = editors.current!.mid!;
     const model = mid.getModel()!;
@@ -305,7 +292,6 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
     editors.current?.mid?.focus();
   };
 
-  /** model.resolveChange(side): keep this part's lines in the result. */
   const applyPart = (h: Hunk, p: Part) => {
     if (p.state !== 'pending') return;
     withEditor(() => {
@@ -313,7 +299,6 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
     });
   };
 
-  /** model.ignoreChange(side): drop this part's lines. */
   const ignorePart = (h: Hunk, p: Part) => {
     if (p.state !== 'pending') return;
     withEditor(() => {
@@ -325,7 +310,6 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
       }
       if (h.end >= p.start) h.end -= len;
       p.state = 'ignored';
-      // IntelliJ: ignoring BOTH sides of a change leaves the base version.
       const anyApplied = h.parts.some((q) => q.state === 'applied');
       const anyPending = h.parts.some((q) => q.state === 'pending');
       if (!anyApplied && !anyPending && h.baseLines.length) {
@@ -343,7 +327,6 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
     });
   };
 
-  /** model.resetResolvedChange: the whole change goes back to pending. */
   const resetHunk = (h: Hunk) => {
     if (isHunkPending(h)) return;
     withEditor(() => {
@@ -355,7 +338,6 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
         if (h.end >= h.start) {
           mid.executeEdits('merge', [{ range: new editors.current!.monaco.Range(h.start, 1, h.end, model.getLineMaxColumn(h.end)), text: all.join('\n') }]);
         } else {
-          // Nothing left of the block — re-insert it before the current line.
           const at = Math.min(h.start, model.getLineCount() || 1);
           mid.executeEdits('merge', [{ range: new editors.current!.monaco.Range(at, 1, at, 1), text: all.join('\n') + (all.length ? '\n' : '') }]);
         }
@@ -388,8 +370,6 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
         });
       const left = mk(leftRef.current!, data.ours ?? '', true);
       const right = mk(rightRef.current!, data.theirs ?? '', true);
-      // Center starts from the common base (IntelliJ: "initially, the contents
-      // of this pane are the same as the base revision").
       const mm = buildMergeModel((data.base ?? '').split('\n'), (data.ours ?? '').split('\n'), (data.theirs ?? '').split('\n'));
       model_.current = mm;
       const mid = mk(midRef.current!, mm.resultLines.join('\n'), false);
@@ -402,7 +382,10 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
           clearWidgets();
           midDecos.current = mid.getModel()!.deltaDecorations(midDecos.current, []);
         }
+        pushSnapshot();
       });
+      mid.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ, undo);
+      mid.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ, redo);
       paint();
     });
     return () => {
@@ -423,16 +406,18 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
   const changes = hunks.length;
   const conflictsLeft = pendingConflicts.length;
 
-  /** ApplyNonConflictsAction(BASE) — the magic wand. */
   const magicSolve = () => {
-    for (const { p } of simplePending) p.state = 'applied';
+    act(() => {
+      for (const { p } of simplePending) p.state = 'applied';
+    });
     paint();
     editors.current?.mid?.focus();
   };
 
-  /** ApplyNonConflictsAction(LEFT/RIGHT) — only non-conflicting changes from one side. */
   const applySideSimple = (side: 'left' | 'right') => {
-    for (const { h, p } of simplePending) if (p.side === side) p.state = 'applied';
+    act(() => {
+      for (const { h, p } of simplePending) if (p.side === side) p.state = 'applied';
+    });
     paint();
     editors.current?.mid?.focus();
   };
@@ -449,15 +434,16 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
     mid.focus();
   };
 
-  /** "Resolve using Left/Right": apply that side of every pending conflict, ignore the other. */
   const resolveUsingSide = (side: 'left' | 'right') => {
-    for (const h of [...pendingConflicts].sort((a, b) => b.start - a.start)) {
-      for (const p of [...h.parts].sort((a, b) => b.start - a.start)) {
-        if (p.state !== 'pending') continue;
-        if (p.side === side) p.state = 'applied';
-        else ignorePart(h, p);
+    act(() => {
+      for (const h of [...pendingConflicts].sort((a, b) => b.start - a.start)) {
+        for (const p of [...h.parts].sort((a, b) => b.start - a.start)) {
+          if (p.state !== 'pending') continue;
+          if (p.side === side) p.state = 'applied';
+          else ignorePart(h, p);
+        }
       }
-    }
+    });
     paint();
   };
 
@@ -470,9 +456,9 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
   const apply = async () => {
     const mid = editors.current?.mid;
     if (!mid) return;
-    // The center pane is literal (IntelliJ semantics): anything still pending
-    // is treated as ignored — its lines are dropped from the result.
-    for (const { h, p } of [...pendingParts].sort((a, b) => b.p.start - a.p.start)) ignorePart(h, p);
+    act(() => {
+      for (const { h, p } of [...pendingParts].sort((a, b) => b.p.start - a.p.start)) ignorePart(h, p);
+    });
     if (conflictsLeft) {
       force();
       return toast('Unresolved conflicts', `Resolve every conflict first (${conflictsLeft} left)`, 'error');
@@ -514,6 +500,9 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
       }
     >
       <div className="md-toolbar">
+        <button title="Undo (⌘Z)" disabled={!undoStack.current.length} onClick={undo}>↺</button>
+        <button title="Redo (⇧⌘Z)" disabled={!redoStack.current.length} onClick={redo}>↻</button>
+        <span className="mb-sep" />
         <button title="Previous change" onClick={() => gotoPart(-1)}><Icon name="up" /></button>
         <button title="Next change" onClick={() => gotoPart(1)}><Icon name="down" /></button>
         <span className="md-count">{manual ? 'Manually edited' : `${changes} change${changes === 1 ? '' : 's'}. ${conflictsLeft} conflict${conflictsLeft === 1 ? '' : 's'}`}</span>
@@ -538,10 +527,6 @@ function MergeRevisionsView({ path, branches, close }: { path: string; branches:
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Entry points                                                         */
-/* ------------------------------------------------------------------ */
-
 export async function openMergeConflicts() {
   const s = await fetchMergeState();
   if (!s) return toast('Cannot list conflicts', 'Backend did not answer merge-state', 'error');
@@ -556,8 +541,6 @@ export async function openMergeRevisions(path: string) {
 
 let conflictsWereOpen = false;
 if (typeof window !== 'undefined') {
-  // Like JetBrains, pop the conflicts list the moment a merge produces conflicts.
-  // prev.repo guard: skip the initial gitStatus load after a page reload.
   useStore.subscribe((s, prev) => {
     const now = Object.values(s.gitStatus.files).filter((f: any) => f.status === 'conflict').length;
     const before = Object.values(prev.gitStatus.files).filter((f: any) => f.status === 'conflict').length;
