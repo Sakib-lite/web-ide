@@ -32,6 +32,8 @@ export function useShortcuts() {
       };
       if (cmd && !e.shiftKey && !e.altKey) {
         if (TOOL_KEYS[e.code]) return handle(() => toggleTool(TOOL_KEYS[e.code]));
+        if (e.code === 'KeyZ' && !inEditor && !inField) return handle(() => { editorManager.editor?.focus(); editorManager.trigger('undo'); });
+        if (e.code === 'KeyY' && !inField) return handle(() => { editorManager.editor?.focus(); editorManager.trigger('redo'); });
         if (e.code === 'KeyS') return handle(() => editorManager.saveAll());
         if (e.code === 'KeyN' && !inEditor && !inField) return handle(() => createNode(null, 'file'));
         if (e.code === 'KeyO') return handle(() => openSearchEverywhere('symbols'));
@@ -48,6 +50,7 @@ export function useShortcuts() {
         if (e.code === 'BracketRight' && !inEditor) return handle(() => editorManager.navigate(1));
       }
       if (cmd && e.shiftKey && !e.altKey) {
+        if (e.code === 'KeyZ' && !inEditor && !inField) return handle(() => { editorManager.editor?.focus(); editorManager.trigger('redo'); });
         if (e.code === 'KeyF') return handle(() => openFindInFiles(editorManager.selectedText()));
         if (e.code === 'KeyV') return handle(() => cycleMdMode());
         if (e.code === 'KeyO' || e.code === 'KeyN') return handle(() => openSearchEverywhere('files'));

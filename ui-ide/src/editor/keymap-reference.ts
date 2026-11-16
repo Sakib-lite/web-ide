@@ -58,6 +58,8 @@ export const KEYMAP_GROUPS: KeymapGroup[] = [
   {
     title: 'Editing',
     items: [
+      { keys: ['⌘Z'], label: 'Undo (works anywhere, not only in the editor)' },
+      { keys: ['⇧⌘Z', '⌘Y'], label: 'Redo' },
       { keys: ['⌘D'], label: 'Duplicate Line or Selection' },
       { keys: ['⌘⌫'], label: 'Delete Line' },
       { keys: ['⇧⌥↑'], label: 'Move Line Up' },
