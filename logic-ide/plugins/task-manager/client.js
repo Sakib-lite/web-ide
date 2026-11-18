@@ -43,7 +43,7 @@ export function activate(api) {
   };
 
   const run = (t) => {
-    api.runInTerminal(t.command, { cwd: t.cwd || api.state.root });
+    api.runInTerminal(t.command, { cwd: t.cwd || api.state.root, key: 'task:' + t.id, title: t.name });
   };
 
   function row(t) {

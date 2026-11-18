@@ -80,7 +80,7 @@ function makeApi(manifest: PluginManifest) {
     readFile: async (path: string) => (await fsApi.read(path)).content,
     writeFile: (path: string, content: string) => fsApi.write(path, content),
     files: () => fsApi.files(),
-    runInTerminal: (cmd: string, o?: { cwd?: string }) => runInTerminal(cmd, o?.cwd),
+    runInTerminal: (cmd: string, o?: { cwd?: string; key?: string; title?: string }) => runInTerminal(cmd, o?.cwd, o),
     toast,
     showContextMenu,
     formDialog,

@@ -16,12 +16,13 @@ export interface TerminalSession {
   exited: boolean;
   lastCommand: string | null;
   reconnecting: boolean;
+  key?: string;
 }
 
 interface TerminalState {
   sessions: TerminalSession[];
   activeId: number | null;
-  create: (opts?: { cwd?: string; command?: string; serverId?: string; title?: string }) => TerminalSession;
+  create: (opts?: { cwd?: string; command?: string; serverId?: string; title?: string; key?: string }) => TerminalSession;
   activate: (id: number) => void;
   close: (id: number) => void;
   rerun: (id?: number) => void;
@@ -97,10 +98,10 @@ export const useTerminals = create<TerminalState>((set, get) => {
     };
   };
 
-  const create: TerminalState['create'] = ({ cwd, command, serverId, title } = {}) => {
+  const create: TerminalState['create'] = ({ cwd, command, serverId, title, key } = {}) => {
     const id = ++counter;
     const { term, fit } = makeTerm();
-    const session: TerminalSession = { id, serverId: serverId ?? null, title: title || `Local${id > 1 ? ` (${id})` : ''}`, term, fit, ws: null as unknown as WebSocket, exited: false, lastCommand: command || null, reconnecting: false };
+    const session: TerminalSession = { id, serverId: serverId ?? null, title: title || `Local${id > 1 ? ` (${id})` : ''}`, term, fit, ws: null as unknown as WebSocket, exited: false, lastCommand: command || null, reconnecting: false, key };
     const liveSend = (msg: Record<string, unknown>) => {
       if (session.ws?.readyState === WebSocket.OPEN) session.ws.send(JSON.stringify(msg));
     };
@@ -169,9 +170,22 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export function runInTerminal(command: string, cwd?: string) {
+export function runInTerminal(command: string, cwd?: string, opts?: { key?: string; title?: string }) {
   useStore.getState().showTool('terminal');
-  const { sessions, activeId, create } = useTerminals.getState();
+  const { sessions, create } = useTerminals.getState();
+  if (opts?.key) {
+    const owned = sessions.find((s) => s.key === opts.key);
+    if (owned && !owned.exited && owned.ws.readyState === WebSocket.OPEN) {
+      useTerminals.setState({ activeId: owned.id });
+      owned.lastCommand = command;
+      const prelude = (cwd ? `cd ${JSON.stringify(cwd)} && ` : '') + command;
+      owned.ws.send(JSON.stringify({ type: 'input', data: '\u0015' + prelude + '\r' }));
+      owned.term.focus();
+      return;
+    }
+    return create({ cwd, command, key: opts.key, title: opts.title });
+  }
+  const activeId = useTerminals.getState().activeId;
   const active = sessions.find((s) => s.id === activeId);
   if (!active || active.exited || active.ws.readyState !== WebSocket.OPEN) return create({ cwd, command });
   active.lastCommand = command;
