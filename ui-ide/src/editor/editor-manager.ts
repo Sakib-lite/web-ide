@@ -5,11 +5,13 @@ import { useStore, TabInfo } from '@/lib/store';
 import { emit, on } from '@/lib/bus';
 import { basename, debounce, Debounced, extname, readLocal, shortAgo, writeLocal } from '@/lib/utils';
 import { toast } from '@/components/ui/Toasts';
+import { showContextMenu } from '@/components/ui/ContextMenu';
 import { THEME_NAME, configureTypescript, defineTheme, languageFor } from './theme';
 import { registerDefinitionProvider } from './definitions';
 import { initIntellisense } from './intellisense';
 import { registerKeymap } from './keymap';
 import { registerMergeConflicts } from './merge-conflicts';
+import { useLogStore } from '@/components/gitlog/log-store';
 
 export interface DiffOptions {
   key?: string;
@@ -117,6 +119,8 @@ class EditorManager {
     registerKeymap(monaco, this);
     registerMergeConflicts(monaco, this.editor);
     this.editor.onDidChangeCursorPosition((e) => (e.source === 'mouse' || e.source === 'keyboard') && this.noteLocation(true));
+    this.editor.onMouseDown((e) => this.onBlameMouseDown(e));
+    this.editor.onContextMenu((e) => this.onGutterContextMenu(e));
     on('fs-change', ({ changes }: any) => this.onFsChange(changes));
     on('git-status', () => this.active?.kind === 'file' && this.refreshGutter(this.active));
     on('focus-editor', () => this.editor.focus());
@@ -479,6 +483,32 @@ class EditorManager {
       return { range: new this.monaco.Range(i + 1, 1, i + 1, 1), options: { showIfCollapsed: true, before: { content: text.padEnd(width, ' '), inlineClassName: `blame-inline${l.uncommitted ? ' uncommitted' : ''}`, cursorStops: this.monaco.editor.InjectedTextCursorStops.None }, hoverMessage: l.uncommitted ? { value: 'Not committed yet' } : { value: `**${l.short}** ${l.summary}\n\n${l.author} · ${new Date(l.time).toLocaleString()}` } } };
     });
     tab.blameDecorations = tab.model.deltaDecorations(tab.blameDecorations, decos);
+  }
+
+  private onBlameMouseDown(e: Monaco.editor.IEditorMouseEvent) {
+    const tab = this.active;
+    if (!tab || tab.kind !== 'file' || !tab.blame) return;
+    if (!(e.target as any).detail?.injectedText) return;
+    const line = e.target.position?.lineNumber;
+    const entry = line ? tab.blame[line - 1] : null;
+    if (!entry || entry.uncommitted) return;
+    useStore.getState().showTool('git');
+    const log = useLogStore.getState();
+    log.setTab('log');
+    log.select(entry.hash);
+  }
+
+  private onGutterContextMenu(e: Monaco.editor.IEditorMouseEvent) {
+    const tab = this.active;
+    if (!tab || tab.kind !== 'file') return;
+    const mtt = this.monaco.editor.MouseTargetType;
+    const gutter = [mtt.GUTTER_GLYPH_MARGIN, mtt.GUTTER_LINE_NUMBERS, (mtt as any).GUTTER_LINE_NUMBERS_FOREIGN];
+    if (!gutter.includes(e.target.type as unknown as typeof gutter[number])) return;
+    e.event.preventDefault();
+    e.event.stopPropagation();
+    showContextMenu(e.event.posx, e.event.posy, [
+      { label: tab.blame ? 'Hide Blame Annotations' : 'Annotate with Git Blame', action: () => this.toggleBlame() },
+    ]);
   }
 
   noteLocation(soft = false) {
